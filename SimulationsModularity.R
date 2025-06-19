@@ -1,7 +1,23 @@
+####========================
+#### Affinity Network Model
+#### César Macieira
+####========================
 rm(list=ls(all=T))
 set.seed(13)
-library(igraph)
 
+####===========
+#### Libraries
+####===========
+if(!require(openxlsx)){ install.packages("openxlsx"); require(openxlsx)}
+if(!require(igraph)){ install.packages("igraph"); require(igraph)}
+if(!require(tidyverse)){ install.packages("tidyverse"); require(tidyverse)}
+if(!require(tm)){ install.packages("tm", dependencies = T); require(tm) }
+if(!require(SnowballC)){ install.packages("SnowballC"); require(SnowballC) }
+if(!require(gtools)){ install.packages("gtools"); require(gtools) }
+
+####===========
+#### Functions
+####===========
 AlgorithmEM = function(U_Matrix,C,tol = 1e-8,mu.initial_guess){
   m = ncol(U_Matrix)
   n = nrow(U_Matrix)
@@ -20,14 +36,14 @@ AlgorithmEM = function(U_Matrix,C,tol = 1e-8,mu.initial_guess){
     }
     p1 = list()
     p2 = matrix(nrow = n, ncol = C)
-    for(k in 1:C){ # Calculate o produtório do numerador de Tik
+    for(k in 1:C){ # Calculate the product of the numerator of Tik
       p1[[k]] = (mumtx[[k]]^U_Matrix) * ((1-mumtx[[k]])^(1-U_Matrix))
       for(i in 1:n){
         p2[i,k] = prod(p1[[k]][i,])
       }
     }
     ptheta = matrix(rep(theta.estimate,n),ncol = C,byrow = T)
-    p3 = p2*ptheta # Calculate o numerador de Tik
+    p3 = p2*ptheta # Calculate the numerator of Tik
     # Calculate Tik
     Tik = p3/matrix(rep(rowSums(p3),C),ncol = C)
     # Calculate Q(µ|µ(t))
@@ -59,11 +75,10 @@ AlgorithmEM = function(U_Matrix,C,tol = 1e-8,mu.initial_guess){
   #output$fuzzy = Tik
   return(output)
 }
-AloclikelihoodIndC2 = function(U_Matrix,Thetas,
-                                     mu1.estimate,mu2.estimate){
+AloclikelihoodIndC2 = function(U_Matrix,Thetas,mu1.estimate,mu2.estimate){
   mu.estimate = rbind(mu1.estimate,mu2.estimate)
   MatrixLikelihoods = matrix(NA, ncol = dim(U_Matrix)[1], 
-                                   nrow = length(Thetas))
+                             nrow = length(Thetas))
   for(k in 1:length(Thetas)){
     for(i in 1:dim(U_Matrix)[1]){
       MatrixLikelihoods[k,i] = prod(mu.estimate[k,]^U_Matrix[i,])
@@ -97,8 +112,7 @@ AloclikelihoodIndC2 = function(U_Matrix,Thetas,
   Results$PropAllocation = rbind(Community1/dim(U_Matrix)[1],Community2/dim(U_Matrix)[1])
   return(Results)
 }
-AlocLikelihoodIndC3 = function(U_Matrix,Thetas,
-                               mu1.estimate,mu2.estimate,mu3.estimate){
+AlocLikelihoodIndC3 = function(U_Matrix,Thetas,mu1.estimate,mu2.estimate,mu3.estimate){
   mu.estimate = rbind(mu1.estimate,mu2.estimate,mu3.estimate)
   MatrixLikelihoods = matrix(NA, ncol = dim(U_Matrix)[1], nrow = length(Thetas))
   for(k in 1:length(Thetas)){
@@ -219,11 +233,17 @@ SimulationsC3EM = function(C,nsim,Matriz.real,mu1.initial,mu2.initial,mu3.initia
   return(parameters.est)
 }
 
+####============
+#### Modularity
+####============
 # 1. Updated parameters
 n_individuals = 100
 n_words = 20
 p_ij = matrix(0, nrow = n_individuals, ncol = n_words)
 cluster_real = rep(NA, n_individuals)
+number_of_people_group_1 = 1:33
+number_of_people_group_2 = 34:66
+number_of_people_group_3 = 67:100
 
 # 2. Fixed measures by Group
 mu1 = c(runif(8, 0.7, 1), runif(12, 0.0, 0.1))
@@ -232,10 +252,10 @@ mu3 = c(runif(15, 0.1, 0.3), runif(5, 0.9, 1))
 
 # 3. Group assignment (same number of individuals per Group, adjusted)
 for (i in 1:n_individuals) {
-  if (i <= 33) {
+  if (i <= number_of_people_group_1[length(number_of_people_group_1)]) {
     p_ij[i, ] = mu1
     cluster_real[i] = 1
-  } else if (i <= 66) {
+  } else if (i <= number_of_people_group_2[length(number_of_people_group_2)]) {
     p_ij[i, ] = mu2
     cluster_real[i] = 2
   } else {
@@ -249,7 +269,7 @@ U_ij = matrix(runif(n_individuals * n_words) < p_ij, nrow = n_individuals, ncol 
 
 # 5. Create bipartite network and design
 g_bip = graph.incidence(U_ij)
-proj = bipartite.projection(g_bip)$proj1
+proj = bipartite_projection(g_bip)$proj1
 V(proj)$Group = cluster_real
 
 # 6. Modularity
@@ -260,35 +280,33 @@ print(mod)
 Communities_mod = cluster_louvain(proj)
 
 # 8. Get Allocation vector (Community detected for each person)
-aloc_modularidade = Communities_mod$membership
-
-# 9. Allocation
-aloc_modularidade
-table(aloc_modularidade)
+aloc_modularity = Communities_mod$membership
 
 ####=====
 #### BIC
 ####=====
-freq_relativa_Group1 = colSums(U_ij[1:33,]) / sum(U_ij[1:33,])
-freq_relativa_Group2 = colSums(U_ij[34:66,]) / sum(U_ij[34:66,])
-freq_relativa_Group3 = colSums(U_ij[67:100,]) / sum(U_ij[67:100,])
+# Compute relative frequencies of words for each group
+freq_relativa_Group1 = colSums(U_ij[number_of_people_group_1, ]) / sum(U_ij[number_of_people_group_1, ])
+freq_relativa_Group2 = colSums(U_ij[number_of_people_group_2, ]) / sum(U_ij[number_of_people_group_2, ])
+freq_relativa_Group3 = colSums(U_ij[number_of_people_group_3, ]) / sum(U_ij[number_of_people_group_3, ])
 
+# Number of words (dimensions) per group
 kGroup1 = length(freq_relativa_Group1)
-nGroup1 = dim(U_ij[1:33,])[1]
-
 kGroup2 = length(freq_relativa_Group2)
-nGroup2 = dim(U_ij[34:66,])[1]
-
 kGroup3 = length(freq_relativa_Group3)
-nGroup3 = dim(U_ij[67:100,])[1]
 
-####=======================
-#### Nº de Communities = 1
-####=======================
+# Number of individuals per group
+nGroup1 = nrow(U_ij[number_of_people_group_1, ])
+nGroup2 = nrow(U_ij[number_of_people_group_2, ])
+nGroup3 = nrow(U_ij[number_of_people_group_3, ])
+
+####====================
+#### Nº Communities = 1
+####====================
 # Group 1
 theta1.Group1.C1 = 1
-sumGroup1C1BIC = matrix(ncol = 1, nrow = dim(U_ij[1:33,])[1])
-for(i in 1:dim(U_ij[1:33,])[1]){
+sumGroup1C1BIC = matrix(ncol = 1, nrow = dim(U_ij[number_of_people_group_1,])[1])
+for(i in 1:dim(U_ij[number_of_people_group_1,])[1]){
   sumGroup1C1BIC[i,1] = log(sum(theta1.Group1.C1*(freq_relativa_Group1^U_ij[i,])))
 }
 sumGroup1C1BIC
@@ -299,8 +317,8 @@ BICGroup1C1
 
 # Group 2
 theta1.Group2.C1 = 1
-sumGroup2C1BIC = matrix(ncol = 1, nrow = dim(U_ij[34:66,])[1])
-for(i in 1:dim(U_ij[34:66,])[1]){
+sumGroup2C1BIC = matrix(ncol = 1, nrow = dim(U_ij[number_of_people_group_2,])[1])
+for(i in 1:dim(U_ij[number_of_people_group_2,])[1]){
   sumGroup2C1BIC[i,1] = log(sum(theta1.Group2.C1*(freq_relativa_Group2^U_ij[i,])))
 }
 sumGroup2C1BIC
@@ -311,8 +329,8 @@ BICGroup2C1
 
 # Group 3
 theta1.Group3.C1 = 1
-sumGroup3C1BIC = matrix(ncol = 1, nrow = dim(U_ij[67:100,])[1])
-for(i in 1:dim(U_ij[67:100,])[1]){
+sumGroup3C1BIC = matrix(ncol = 1, nrow = dim(U_ij[number_of_people_group_3,])[1])
+for(i in 1:dim(U_ij[number_of_people_group_3,])[1]){
   sumGroup3C1BIC[i,1] = log(sum(theta1.Group3.C1*(freq_relativa_Group3^U_ij[i,])))
 }
 sumGroup3C1BIC
@@ -321,40 +339,40 @@ deltaC1Group3 = (2*kGroup3)-2
 BICGroup3C1 = (2*sum(sumGroup3C1BIC[,1]))-(deltaC1Group3*log(nGroup3))
 BICGroup3C1
 
-####=======================
-#### Nº de Communities = 2
-####=======================
+####====================
+#### Nº Communities = 2
+####====================
 # Group 1
 set.seed(13)
-Group1C2initialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[1:33,])[2]))
+Group1C2initialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_1,])[2]))
 set.seed(1968)
-Group1C2initialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[1:33,])[2]))
+Group1C2initialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_1,])[2]))
 
 dicionarioGroup1 = c(seq(1:20))
 
 Group1C2BIC = 
-  SimulationsC2EM(C = 2, nsim = 1, Matriz.real = U_ij[1:33,],
-                 mu1.initial = Group1C2initialC1,
-                 mu2.initial = Group1C2initialC2)
+  SimulationsC2EM(C = 2, nsim = 1, Matriz.real = U_ij[number_of_people_group_1,],
+                  mu1.initial = Group1C2initialC1,
+                  mu2.initial = Group1C2initialC2)
 TableGroup1C2BIC = cbind(rbind(mean(Group1C2BIC$theta[,1]),mean(Group1C2BIC$theta[,2])),
                          Group1C2BIC$mu.mean)
 colnames(TableGroup1C2BIC) = c("theta",dicionarioGroup1);TableGroup1C2BIC
 
-sumGroup1C2BIC = matrix(ncol = 1, nrow = dim(U_ij[1:33,])[1])
+sumGroup1C2BIC = matrix(ncol = 1, nrow = dim(U_ij[number_of_people_group_1,])[1])
 
 theta1.Group1.C2 = TableGroup1C2BIC[1,1]
 theta2.Group1.C2 = TableGroup1C2BIC[2,1]
 
-mu1.estimada.Group1.C2 = TableGroup1C2BIC[1,2:dim(TableGroup1C2BIC)[2]]
-mu1.padronizada.Group1.C2 = mu1.estimada.Group1.C2/sum(TableGroup1C2BIC[1,2:dim(TableGroup1C2BIC)[2]])
-mu2.estimada.Group1.C2 = TableGroup1C2BIC[2,2:dim(TableGroup1C2BIC)[2]]
-mu2.padronizada.Group1.C2 = mu2.estimada.Group1.C2/sum(TableGroup1C2BIC[2,2:dim(TableGroup1C2BIC)[2]])
+mu1.estimated.Group1.C2 = TableGroup1C2BIC[1,2:dim(TableGroup1C2BIC)[2]]
+mu1.standardized.Group1.C2 = mu1.estimated.Group1.C2/sum(TableGroup1C2BIC[1,2:dim(TableGroup1C2BIC)[2]])
+mu2.estimated.Group1.C2 = TableGroup1C2BIC[2,2:dim(TableGroup1C2BIC)[2]]
+mu2.standardized.Group1.C2 = mu2.estimated.Group1.C2/sum(TableGroup1C2BIC[2,2:dim(TableGroup1C2BIC)[2]])
 
-for(i in 1:dim(U_ij[1:33,])[1]){
+for(i in 1:dim(U_ij[number_of_people_group_1,])[1]){
   sumGroup1C2BIC[i,1] = 
     log( 
-      (theta1.Group1.C2 * sum(mu1.padronizada.Group1.C2^U_ij[i,]))+
-        (theta2.Group1.C2 * sum(mu2.padronizada.Group1.C2^U_ij[i,]))
+      (theta1.Group1.C2 * sum(mu1.standardized.Group1.C2^U_ij[i,]))+
+        (theta2.Group1.C2 * sum(mu2.standardized.Group1.C2^U_ij[i,]))
     )
 }
 sumGroup1C2BIC
@@ -364,35 +382,35 @@ BICGroup1C2
 
 # Group 2
 set.seed(13)
-Group2C2initialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[34:66,])[2]))
+Group2C2initialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_2,])[2]))
 set.seed(1968)
-Group2C2initialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[34:66,])[2]))
+Group2C2initialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_2,])[2]))
 
 dicionarioGroup2 = c(seq(1:20))
 
 Group2C2BIC = 
-  SimulationsC2EM(C = 2, nsim = 1, Matriz.real = U_ij[34:66,],
-                 mu1.initial = Group2C2initialC1,
-                 mu2.initial = Group2C2initialC2)
+  SimulationsC2EM(C = 2, nsim = 1, Matriz.real = U_ij[number_of_people_group_2,],
+                  mu1.initial = Group2C2initialC1,
+                  mu2.initial = Group2C2initialC2)
 TableGroup2C2BIC = cbind(rbind(mean(Group2C2BIC$theta[,1]),mean(Group2C2BIC$theta[,2])),
                          Group2C2BIC$mu.mean)
 colnames(TableGroup2C2BIC) = c("theta",dicionarioGroup2);TableGroup2C2BIC
 
-sumGroup2C2BIC = matrix(ncol = 1, nrow = dim(U_ij[34:66,])[1])
+sumGroup2C2BIC = matrix(ncol = 1, nrow = dim(U_ij[number_of_people_group_2,])[1])
 
 theta1.Group2.C2 = TableGroup2C2BIC[1,1]
 theta2.Group2.C2 = TableGroup2C2BIC[2,1]
 
-mu1.estimada.Group2.C2 = TableGroup2C2BIC[1,2:dim(TableGroup2C2BIC)[2]]
-mu1.padronizada.Group2.C2 = mu1.estimada.Group2.C2/sum(TableGroup2C2BIC[1,2:dim(TableGroup2C2BIC)[2]])
-mu2.estimada.Group2.C2 = TableGroup2C2BIC[2,2:dim(TableGroup2C2BIC)[2]]
-mu2.padronizada.Group2.C2 = mu2.estimada.Group2.C2/sum(TableGroup2C2BIC[2,2:dim(TableGroup2C2BIC)[2]])
+mu1.estimated.Group2.C2 = TableGroup2C2BIC[1,2:dim(TableGroup2C2BIC)[2]]
+mu1.standardized.Group2.C2 = mu1.estimated.Group2.C2/sum(TableGroup2C2BIC[1,2:dim(TableGroup2C2BIC)[2]])
+mu2.estimated.Group2.C2 = TableGroup2C2BIC[2,2:dim(TableGroup2C2BIC)[2]]
+mu2.standardized.Group2.C2 = mu2.estimated.Group2.C2/sum(TableGroup2C2BIC[2,2:dim(TableGroup2C2BIC)[2]])
 
-for(i in 1:dim(U_ij[34:66,])[1]){
+for(i in 1:dim(U_ij[number_of_people_group_2,])[1]){
   sumGroup2C2BIC[i,1] = 
     log( 
-      (theta1.Group2.C2 * sum(mu1.padronizada.Group2.C2^U_ij[i,]))+
-        (theta2.Group2.C2 * sum(mu2.padronizada.Group2.C2^U_ij[i,]))
+      (theta1.Group2.C2 * sum(mu1.standardized.Group2.C2^U_ij[i,]))+
+        (theta2.Group2.C2 * sum(mu2.standardized.Group2.C2^U_ij[i,]))
     )
 }
 sumGroup2C2BIC
@@ -402,35 +420,35 @@ BICGroup2C2
 
 # Group 3
 set.seed(13)
-Group3C2initialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[67:100,])[2]))
+Group3C2initialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_3,])[2]))
 set.seed(1968)
-Group3C2initialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[67:100,])[2]))
+Group3C2initialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_3,])[2]))
 
 dicionarioGroup3 = c(seq(1:20))
 
 Group3C2BIC = 
-  SimulationsC2EM(C = 2, nsim = 1, Matriz.real = U_ij[67:100,],
-                 mu1.initial = Group3C2initialC1,
-                 mu2.initial = Group3C2initialC2)
+  SimulationsC2EM(C = 2, nsim = 1, Matriz.real = U_ij[number_of_people_group_3,],
+                  mu1.initial = Group3C2initialC1,
+                  mu2.initial = Group3C2initialC2)
 TableGroup3C2BIC = cbind(rbind(mean(Group3C2BIC$theta[,1]),mean(Group3C2BIC$theta[,2])),
                          Group3C2BIC$mu.mean)
 colnames(TableGroup3C2BIC) = c("theta",dicionarioGroup3);TableGroup3C2BIC
 
-sumGroup3C2BIC = matrix(ncol = 1, nrow = dim(U_ij[67:100,])[1])
+sumGroup3C2BIC = matrix(ncol = 1, nrow = dim(U_ij[number_of_people_group_3,])[1])
 
 theta1.Group3.C2 = TableGroup3C2BIC[1,1]
 theta2.Group3.C2 = TableGroup3C2BIC[2,1]
 
-mu1.estimada.Group3.C2 = TableGroup3C2BIC[1,2:dim(TableGroup3C2BIC)[2]]
-mu1.padronizada.Group3.C2 = mu1.estimada.Group3.C2/sum(TableGroup3C2BIC[1,2:dim(TableGroup3C2BIC)[2]])
-mu2.estimada.Group3.C2 = TableGroup3C2BIC[2,2:dim(TableGroup3C2BIC)[2]]
-mu2.padronizada.Group3.C2 = mu2.estimada.Group3.C2/sum(TableGroup3C2BIC[2,2:dim(TableGroup3C2BIC)[2]])
+mu1.estimated.Group3.C2 = TableGroup3C2BIC[1,2:dim(TableGroup3C2BIC)[2]]
+mu1.standardized.Group3.C2 = mu1.estimated.Group3.C2/sum(TableGroup3C2BIC[1,2:dim(TableGroup3C2BIC)[2]])
+mu2.estimated.Group3.C2 = TableGroup3C2BIC[2,2:dim(TableGroup3C2BIC)[2]]
+mu2.standardized.Group3.C2 = mu2.estimated.Group3.C2/sum(TableGroup3C2BIC[2,2:dim(TableGroup3C2BIC)[2]])
 
-for(i in 1:dim(U_ij[67:100,])[1]){
+for(i in 1:dim(U_ij[number_of_people_group_3,])[1]){
   sumGroup3C2BIC[i,1] = 
     log( 
-      (theta1.Group3.C2 * sum(mu1.padronizada.Group3.C2^U_ij[i,]))+
-        (theta2.Group3.C2 * sum(mu2.padronizada.Group3.C2^U_ij[i,]))
+      (theta1.Group3.C2 * sum(mu1.standardized.Group3.C2^U_ij[i,]))+
+        (theta2.Group3.C2 * sum(mu2.standardized.Group3.C2^U_ij[i,]))
     )
 }
 sumGroup3C2BIC
@@ -438,48 +456,48 @@ deltaC2Group3 = (2*kGroup3)-1
 BICGroup3C2 = (2*sum(sumGroup3C2BIC[,1]))-(deltaC2Group3*log(nGroup3))
 BICGroup3C2
 
-####=======================
-#### Nº de Communities = 3
-####=======================
+####====================
+#### Nº Communities = 3
+####====================
 # Group 1
 set.seed(13)
-Group1C3initialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[1:33,])[2]))
+Group1C3initialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_1,])[2]))
 set.seed(1968)
-Group1C3initialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[1:33,])[2]))
+Group1C3initialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_1,])[2]))
 set.seed(100)
-Group1C3initialC3 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[1:33,])[2]))
+Group1C3initialC3 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_1,])[2]))
 
 #Tempo grande para execução
 Group1C3BIC = 
-  SimulationsC3EM(C = 3, nsim = 1, Matriz.real = U_ij[1:33,],
-                 mu1.initial = Group1C3initialC1,
-                 mu2.initial = Group1C3initialC2,
-                 mu3.initial = Group1C3initialC3)
+  SimulationsC3EM(C = 3, nsim = 1, Matriz.real = U_ij[number_of_people_group_1,],
+                  mu1.initial = Group1C3initialC1,
+                  mu2.initial = Group1C3initialC2,
+                  mu3.initial = Group1C3initialC3)
 TableGroup1C3BIC = cbind(rbind(mean(Group1C3BIC$theta[,1]),
                                mean(Group1C3BIC$theta[,2]),
                                mean(Group1C3BIC$theta[,3])),
                          Group1C3BIC$mu.mean)
 colnames(TableGroup1C3BIC) = c("theta",dicionarioGroup1);TableGroup1C3BIC
 
-sumGroup1C3BIC = matrix(ncol = 1, nrow = dim(U_ij[1:33,])[1])
+sumGroup1C3BIC = matrix(ncol = 1, nrow = dim(U_ij[number_of_people_group_1,])[1])
 
 theta1.Group1.C3 = TableGroup1C3BIC[1,1]
 theta2.Group1.C3 = TableGroup1C3BIC[2,1]
 theta3.Group1.C3 = TableGroup1C3BIC[3,1]
 
-mu1.estimada.Group1.C3 = TableGroup1C3BIC[1,2:dim(TableGroup1C3BIC)[2]]
-mu1.padronizada.Group1.C3 = mu1.estimada.Group1.C3/sum(TableGroup1C3BIC[1,2:dim(TableGroup1C3BIC)[2]])
-mu2.estimada.Group1.C3 = TableGroup1C3BIC[2,2:dim(TableGroup1C3BIC)[2]]
-mu2.padronizada.Group1.C3 = mu2.estimada.Group1.C3/sum(TableGroup1C3BIC[2,2:dim(TableGroup1C3BIC)[2]])
-mu3.estimada.Group1.C3 = TableGroup1C3BIC[3,2:dim(TableGroup1C3BIC)[2]]
-mu3.padronizada.Group1.C3 = mu3.estimada.Group1.C3/sum(TableGroup1C3BIC[3,2:dim(TableGroup1C3BIC)[2]])
+mu1.estimated.Group1.C3 = TableGroup1C3BIC[1,2:dim(TableGroup1C3BIC)[2]]
+mu1.standardized.Group1.C3 = mu1.estimated.Group1.C3/sum(TableGroup1C3BIC[1,2:dim(TableGroup1C3BIC)[2]])
+mu2.estimated.Group1.C3 = TableGroup1C3BIC[2,2:dim(TableGroup1C3BIC)[2]]
+mu2.standardized.Group1.C3 = mu2.estimated.Group1.C3/sum(TableGroup1C3BIC[2,2:dim(TableGroup1C3BIC)[2]])
+mu3.estimated.Group1.C3 = TableGroup1C3BIC[3,2:dim(TableGroup1C3BIC)[2]]
+mu3.standardized.Group1.C3 = mu3.estimated.Group1.C3/sum(TableGroup1C3BIC[3,2:dim(TableGroup1C3BIC)[2]])
 
-for(i in 1:dim(U_ij[1:33,])[1]){
+for(i in 1:dim(U_ij[number_of_people_group_1,])[1]){
   sumGroup1C3BIC[i,1] = 
     log(
-      (theta1.Group1.C3 * sum((mu1.padronizada.Group1.C3^U_ij[i,]) ))+
-        (theta2.Group1.C3 * sum((mu2.padronizada.Group1.C3^U_ij[i,]) ))+
-        (theta3.Group1.C3 * sum((mu3.padronizada.Group1.C3^U_ij[i,]) ))
+      (theta1.Group1.C3 * sum((mu1.standardized.Group1.C3^U_ij[i,]) ))+
+        (theta2.Group1.C3 * sum((mu2.standardized.Group1.C3^U_ij[i,]) ))+
+        (theta3.Group1.C3 * sum((mu3.standardized.Group1.C3^U_ij[i,]) ))
     )
 }
 sumGroup1C3BIC
@@ -489,43 +507,42 @@ BICGroup1C3
 
 # Group 2
 set.seed(13)
-Group2C3initialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[34:66,])[2]))
+Group2C3initialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_2,])[2]))
 set.seed(1968)
-Group2C3initialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[34:66,])[2]))
+Group2C3initialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_2,])[2]))
 set.seed(100)
-Group2C3initialC3 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[34:66,])[2]))
+Group2C3initialC3 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_2,])[2]))
 
-#Tempo grande para execução
 Group2C3BIC = 
-  SimulationsC3EM(C = 3, nsim = 1, Matriz.real = U_ij[34:66,],
-                 mu1.initial = Group2C3initialC1,
-                 mu2.initial = Group2C3initialC2,
-                 mu3.initial = Group2C3initialC3)
+  SimulationsC3EM(C = 3, nsim = 1, Matriz.real = U_ij[number_of_people_group_2,],
+                  mu1.initial = Group2C3initialC1,
+                  mu2.initial = Group2C3initialC2,
+                  mu3.initial = Group2C3initialC3)
 TableGroup2C3BIC = cbind(rbind(mean(Group2C3BIC$theta[,1]),
                                mean(Group2C3BIC$theta[,2]),
                                mean(Group2C3BIC$theta[,3])),
                          Group2C3BIC$mu.mean)
 colnames(TableGroup2C3BIC) = c("theta",dicionarioGroup2);TableGroup2C3BIC
 
-sumGroup2C3BIC = matrix(ncol = 1, nrow = dim(U_ij[34:66,])[1])
+sumGroup2C3BIC = matrix(ncol = 1, nrow = dim(U_ij[number_of_people_group_2,])[1])
 
 theta1.Group2.C3 = TableGroup2C3BIC[1,1]
 theta2.Group2.C3 = TableGroup2C3BIC[2,1]
 theta3.Group2.C3 = TableGroup2C3BIC[3,1]
 
-mu1.estimada.Group2.C3 = TableGroup2C3BIC[1,2:dim(TableGroup2C3BIC)[2]]
-mu1.padronizada.Group2.C3 = mu1.estimada.Group2.C3/sum(TableGroup2C3BIC[1,2:dim(TableGroup2C3BIC)[2]])
-mu2.estimada.Group2.C3 = TableGroup2C3BIC[2,2:dim(TableGroup2C3BIC)[2]]
-mu2.padronizada.Group2.C3 = mu2.estimada.Group2.C3/sum(TableGroup2C3BIC[2,2:dim(TableGroup2C3BIC)[2]])
-mu3.estimada.Group2.C3 = TableGroup2C3BIC[3,2:dim(TableGroup2C3BIC)[2]]
-mu3.padronizada.Group2.C3 = mu3.estimada.Group2.C3/sum(TableGroup2C3BIC[3,2:dim(TableGroup2C3BIC)[2]])
+mu1.estimated.Group2.C3 = TableGroup2C3BIC[1,2:dim(TableGroup2C3BIC)[2]]
+mu1.standardized.Group2.C3 = mu1.estimated.Group2.C3/sum(TableGroup2C3BIC[1,2:dim(TableGroup2C3BIC)[2]])
+mu2.estimated.Group2.C3 = TableGroup2C3BIC[2,2:dim(TableGroup2C3BIC)[2]]
+mu2.standardized.Group2.C3 = mu2.estimated.Group2.C3/sum(TableGroup2C3BIC[2,2:dim(TableGroup2C3BIC)[2]])
+mu3.estimated.Group2.C3 = TableGroup2C3BIC[3,2:dim(TableGroup2C3BIC)[2]]
+mu3.standardized.Group2.C3 = mu3.estimated.Group2.C3/sum(TableGroup2C3BIC[3,2:dim(TableGroup2C3BIC)[2]])
 
-for(i in 1:dim(U_ij[34:66,])[1]){
+for(i in 1:dim(U_ij[number_of_people_group_2,])[1]){
   sumGroup2C3BIC[i,1] = 
     log(
-      (theta1.Group2.C3 * sum((mu1.padronizada.Group2.C3^U_ij[i,]) ))+
-        (theta2.Group2.C3 * sum((mu2.padronizada.Group2.C3^U_ij[i,]) ))+
-        (theta3.Group2.C3 * sum((mu3.padronizada.Group2.C3^U_ij[i,]) ))
+      (theta1.Group2.C3 * sum((mu1.standardized.Group2.C3^U_ij[i,]) ))+
+        (theta2.Group2.C3 * sum((mu2.standardized.Group2.C3^U_ij[i,]) ))+
+        (theta3.Group2.C3 * sum((mu3.standardized.Group2.C3^U_ij[i,]) ))
     )
 }
 sumGroup2C3BIC
@@ -535,43 +552,42 @@ BICGroup2C3
 
 # Group 3
 set.seed(13)
-Group3C3initialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[67:100,])[2]))
+Group3C3initialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_3,])[2]))
 set.seed(1968)
-Group3C3initialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[67:100,])[2]))
+Group3C3initialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_3,])[2]))
 set.seed(100)
-Group3C3initialC3 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[67:100,])[2]))
+Group3C3initialC3 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_3,])[2]))
 
-#Tempo grande para execução
 Group3C3BIC = 
-  SimulationsC3EM(C = 3, nsim = 1, Matriz.real = U_ij[67:100,],
-                 mu1.initial = Group3C3initialC1,
-                 mu2.initial = Group3C3initialC2,
-                 mu3.initial = Group3C3initialC3)
+  SimulationsC3EM(C = 3, nsim = 1, Matriz.real = U_ij[number_of_people_group_3,],
+                  mu1.initial = Group3C3initialC1,
+                  mu2.initial = Group3C3initialC2,
+                  mu3.initial = Group3C3initialC3)
 TableGroup3C3BIC = cbind(rbind(mean(Group3C3BIC$theta[,1]),
                                mean(Group3C3BIC$theta[,2]),
                                mean(Group3C3BIC$theta[,3])),
                          Group3C3BIC$mu.mean)
 colnames(TableGroup3C3BIC) = c("theta",dicionarioGroup3);TableGroup3C3BIC
 
-sumGroup3C3BIC = matrix(ncol = 1, nrow = dim(U_ij[67:100,])[1])
+sumGroup3C3BIC = matrix(ncol = 1, nrow = dim(U_ij[number_of_people_group_3,])[1])
 
 theta1.Group3.C3 = TableGroup3C3BIC[1,1]
 theta2.Group3.C3 = TableGroup3C3BIC[2,1]
 theta3.Group3.C3 = TableGroup3C3BIC[3,1]
 
-mu1.estimada.Group3.C3 = TableGroup3C3BIC[1,2:dim(TableGroup3C3BIC)[2]]
-mu1.padronizada.Group3.C3 = mu1.estimada.Group3.C3/sum(TableGroup3C3BIC[1,2:dim(TableGroup3C3BIC)[2]])
-mu2.estimada.Group3.C3 = TableGroup3C3BIC[2,2:dim(TableGroup3C3BIC)[2]]
-mu2.padronizada.Group3.C3 = mu2.estimada.Group3.C3/sum(TableGroup3C3BIC[2,2:dim(TableGroup3C3BIC)[2]])
-mu3.estimada.Group3.C3 = TableGroup3C3BIC[3,2:dim(TableGroup3C3BIC)[2]]
-mu3.padronizada.Group3.C3 = mu3.estimada.Group3.C3/sum(TableGroup3C3BIC[3,2:dim(TableGroup3C3BIC)[2]])
+mu1.estimated.Group3.C3 = TableGroup3C3BIC[1,2:dim(TableGroup3C3BIC)[2]]
+mu1.standardized.Group3.C3 = mu1.estimated.Group3.C3/sum(TableGroup3C3BIC[1,2:dim(TableGroup3C3BIC)[2]])
+mu2.estimated.Group3.C3 = TableGroup3C3BIC[2,2:dim(TableGroup3C3BIC)[2]]
+mu2.standardized.Group3.C3 = mu2.estimated.Group3.C3/sum(TableGroup3C3BIC[2,2:dim(TableGroup3C3BIC)[2]])
+mu3.estimated.Group3.C3 = TableGroup3C3BIC[3,2:dim(TableGroup3C3BIC)[2]]
+mu3.standardized.Group3.C3 = mu3.estimated.Group3.C3/sum(TableGroup3C3BIC[3,2:dim(TableGroup3C3BIC)[2]])
 
-for(i in 1:dim(U_ij[67:100,])[1]){
+for(i in 1:dim(U_ij[number_of_people_group_3,])[1]){
   sumGroup3C3BIC[i,1] = 
     log(
-      (theta1.Group3.C3 * sum((mu1.padronizada.Group3.C3^U_ij[i,]) ))+
-        (theta2.Group3.C3 * sum((mu2.padronizada.Group3.C3^U_ij[i,]) ))+
-        (theta3.Group3.C3 * sum((mu3.padronizada.Group3.C3^U_ij[i,]) ))
+      (theta1.Group3.C3 * sum((mu1.standardized.Group3.C3^U_ij[i,]) ))+
+        (theta2.Group3.C3 * sum((mu2.standardized.Group3.C3^U_ij[i,]) ))+
+        (theta3.Group3.C3 * sum((mu3.standardized.Group3.C3^U_ij[i,]) ))
     )
 }
 sumGroup3C3BIC
@@ -579,15 +595,33 @@ deltaC3Group3 = (2*kGroup3)
 BICGroup3C3 = (2*sum(sumGroup3C3BIC[,1]))-(deltaC3Group3*log(nGroup3))
 BICGroup3C3
 
-####============
-#### Results
-####============
+####=============================
+#### Comparison of results - BIC
+####=============================
 rbind(BICGroup1C1,BICGroup1C2,BICGroup1C3)
 rbind(BICGroup2C1,BICGroup2C2,BICGroup2C3)
 rbind(BICGroup3C1,BICGroup3C2,BICGroup3C3)
 
-Results_aloc_EM = AlocLikelihoodIndC3(U_Matrix = U_ij,
-                                      Thetas = c(0.33,0.33,0.34),
-                                      mu1.estimate = mu1,
-                                      mu2.estimate = mu2,
-                                      mu3.estimate = mu3)
+####=======================
+#### Comparison of results
+####=======================
+# Real group
+true_group = c(rep(1, 33), rep(2, 33), rep(3, 34))
+
+# Modularity
+aloc_modularity
+table(aloc_modularity)
+
+# Likelihood
+Results_aloc_EM = AlocLikelihoodIndC3(U_Matrix = U_ij, Thetas = c(0.33,0.33,0.34),
+                                      mu1.estimate = mu1, mu2.estimate = mu2, mu3.estimate = mu3)
+Results_aloc_EM
+
+
+df_comparison = data.frame(
+  True_Group = true_group,
+  Modularity_Cluster = aloc_modularity,
+  EM_Cluster = as.vector(Results_aloc_EM$Allocation))
+
+df_comparison
+
