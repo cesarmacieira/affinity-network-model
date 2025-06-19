@@ -1,71 +1,58 @@
-####============================================
-#### Aplicação da modularidade - César Macieira
-####============================================
-rm(list=ls(all=T))
+set.seed(13)
+library(igraph)
 
-# Packages
-if(!require(igraph)){ install.packages("igraph"); require(igraph)}
-
-#Functions
-AlocLikelihoodIndC2 = function(n,theta.real,
-                               mu1.real,mu2.real,
-                               mu1.estimate,mu2.estimate){
-  set.seed(13)
-  MatrixU = t(cbind(replicate(theta.real[1]*n,sapply(mu1.real,function(x)rbinom(1,1,x))), 
-                    replicate(theta.real[2]*n,sapply(mu2.real,function(x)rbinom(1,1,x)))))
-  mu.estimate = rbind(mu1.estimate,mu2.estimate)
-  MatrixLikelihoods = matrix(NA, ncol = n, nrow = length(theta.real))
-  for(k in 1:length(theta.real)){
-    for(i in 1:n){
-      MatrixLikelihoods[k,i] = prod(mu.estimate[k,]^MatrixU[i,])
+AlocVerossimilhancaIndC2 <- function(MatrizU,Thetas,
+                                     mu1.estimado,mu2.estimado){
+  mu.estimado <- rbind(mu1.estimado,mu2.estimado)
+  MatrizVerossimilhancas <- matrix(NA, ncol = dim(MatrizU)[1], 
+                                   nrow = length(Thetas))
+  for(k in 1:length(Thetas)){
+    for(i in 1:dim(MatrizU)[1]){
+      MatrizVerossimilhancas[k,i] <- prod(mu.estimado[k,]^MatrizU[i,])
     }
   }
-  Community1 = Community2 = 0
-  Allocation = matrix(nrow = 1, ncol = n) 
-  for(i in 1:n){
-    if(MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i]){
-      choicedraw = sample(x = c(1,2), size = 1, prob = c(theta.real[1],theta.real[2]))
-      if(choicedraw == 1){
-        Community1 = Community1 + 1
-        Allocation[1,i] = 1
-      }else if(choicedraw == 2){
-        Community2 = Community2 + 1
-        Allocation[1,i] = 2
+  Comunidade1 <- Comunidade2 <- 0
+  Alocacao <- matrix(nrow = 1, ncol = dim(MatrizU)[1]) 
+  for(i in 1:dim(MatrizU)[1]){
+    if(MatrizVerossimilhancas[1,i] == MatrizVerossimilhancas[2,i]){
+      sorteioempate <- sample(x = c(1,2), size = 1, prob = c(Thetas[1],Thetas[2]))
+      if(sorteioempate == 1){
+        Comunidade1 <- Comunidade1 + 1
+        Alocacao[1,i] <- 1
+      }else if(sorteioempate == 2){
+        Comunidade2 <- Comunidade2 + 1
+        Alocacao[1,i] <- 2
       }
     }else 
-      if(which.max(MatrixLikelihoods[,i]) == 1){
-        Community1 = Community1 + 1
-        Allocation[1,i] = 1
-      }else if(which.max(MatrixLikelihoods[,i]) == 2){
-        Community2 = Community2 + 1
-        Allocation[1,i] = 2
+      if(which.max(MatrizVerossimilhancas[,i]) == 1){
+        Comunidade1 <- Comunidade1 + 1
+        Alocacao[1,i] <- 1
+      }else if(which.max(MatrizVerossimilhancas[,i]) == 2){
+        Comunidade2 <- Comunidade2 + 1
+        Alocacao[1,i] <- 2
       }
   }
-  results = list()
-  results$MatrixLikelihoods = MatrixLikelihoods
-  results$Allocation = Allocation
-  results$PropAllocation = rbind(Community1/n,Community2/n)
-  return(results)
+  resultados <- list()
+  resultados$MatrizVerossimilhancas <- MatrizVerossimilhancas
+  resultados$Alocação <- Alocacao
+  resultados$Theta.estimados <- Thetas
+  resultados$PropAlocação <- rbind(Comunidade1/dim(MatrizU)[1],Comunidade2/dim(MatrizU)[1])
+  return(resultados)
 }
-AlocLikelihoodIndC3 = function(n,theta.real,
-                               mu1.real,mu2.real,mu3.real,
+AlocLikelihoodIndC3 = function(MatrizU,Thetas,
                                mu1.estimate,mu2.estimate,mu3.estimate){
-  set.seed(13)
-  MatrixU = t(cbind(replicate(theta.real[1]*n,sapply(mu1.real,function(x)rbinom(1,1,x))), 
-                    replicate(theta.real[2]*n,sapply(mu2.real,function(x)rbinom(1,1,x))),
-                    replicate(theta.real[3]*n,sapply(mu3.real,function(x)rbinom(1,1,x)))))
-  mu.estimate = rbind(mu1.estimate,mu2.estimate,mu3.estimate)
-  MatrixLikelihoods = matrix(NA, ncol = n, nrow = length(theta.real))
-  for(k in 1:length(theta.real)){
-    for(i in 1:n){
-      MatrixLikelihoods[k,i] = prod(mu.estimate[k,]^MatrixU[i,])
+  mu.estimado = rbind(mu1.estimate,mu2.estimate,mu3.estimate)
+  MatrixLikelihoods = matrix(NA, ncol = dim(MatrizU)[1], nrow = length(Thetas))
+  for(k in 1:length(Thetas)){
+    for(i in 1:dim(MatrizU)[1]){
+      MatrixLikelihoods[k,i] = prod(mu.estimado[k,]^MatrizU[i,])
     }
   }
   Community1 = Community2 = Community3 = 0
-  Allocation = matrix(nrow = 1, ncol = n) 
-  for(i in 1:n){
+  Allocation = matrix(nrow = 1, ncol = dim(MatrizU)[1]) 
+  for(i in 1:dim(MatrizU)[1]){
     if(MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i] & MatrixLikelihoods[1,i] == MatrixLikelihoods[3,i]){
-      choicedraw = sample(x = c(1,2,3), size = 1, prob = c(theta.real[1],theta.real[2],theta.real[3]))
+      choicedraw = sample(x = c(1,2,3), size = 1, prob = c(Thetas[1],Thetas[2],Thetas[3]))
       if(choicedraw == 1){ 
         Community1 = Community1 + 1; Allocation[1,i] = 1 
       }else if(choicedraw == 2){ 
@@ -74,7 +61,7 @@ AlocLikelihoodIndC3 = function(n,theta.real,
         Community3 = Community3 + 1; Allocation[1,i] = 3 
       }
     }else if(which.max(MatrixLikelihoods[,i]) == 1 & MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i]){
-      choicedraw = sample(x = c(1,2), size = 1, prob = c(theta.real[1],theta.real[2]))
+      choicedraw = sample(x = c(1,2), size = 1, prob = c(Thetas[1],Thetas[2]))
       if(choicedraw == 1){ 
         Community1 = Community1 + 1; Allocation[1,i] = 1  
       }
@@ -82,7 +69,7 @@ AlocLikelihoodIndC3 = function(n,theta.real,
         Community2 = Community2 + 1; Allocation[1,i] = 2 
       }
     }else if(which.max(MatrixLikelihoods[,i]) == 1 & MatrixLikelihoods[1,i] == MatrixLikelihoods[3,i]){
-      choicedraw = sample(x = c(1,3), size = 1, prob = c(theta.real[1],theta.real[3]))
+      choicedraw = sample(x = c(1,3), size = 1, prob = c(Thetas[1],Thetas[3]))
       if(choicedraw == 1){ 
         Community1 = Community1 + 1; Allocation[1,i] = 1 
       }
@@ -90,7 +77,7 @@ AlocLikelihoodIndC3 = function(n,theta.real,
         Community3 = Community3 + 1; Allocation[1,i] = 3 
       }
     }else if(which.max(MatrixLikelihoods[,i]) == 2 & MatrixLikelihoods[2,i] == MatrixLikelihoods[3,i]){
-      choicedraw = sample(x = c(2,3), size = 1, prob = c(theta.real[2],theta.real[3]))
+      choicedraw = sample(x = c(2,3), size = 1, prob = c(Thetas[2],Thetas[3]))
       if(choicedraw == 2){ 
         Community2 = Community2 + 1; Allocation[1,i] = 2 
       }
@@ -108,575 +95,381 @@ AlocLikelihoodIndC3 = function(n,theta.real,
   results = list()
   results$MatrixLikelihoods = MatrixLikelihoods
   results$Allocation = Allocation
-  results$PropAllocation = rbind(Community1/n,Community2/n,Community3/n)
-  return(results)
-  
-}
-AlocLikelihoodIndC4 = function(n,theta.real,
-                               mu1.real,mu2.real,mu3.real,mu4.real,
-                               mu1.estimate,mu2.estimate,mu3.estimate,mu4.estimate){
-  set.seed(13)
-  MatrixU = t(cbind(replicate(theta.real[1]*n,sapply(mu1.real,function(x)rbinom(1,1,x))), 
-                    replicate(theta.real[2]*n,sapply(mu2.real,function(x)rbinom(1,1,x))),
-                    replicate(theta.real[3]*n,sapply(mu3.real,function(x)rbinom(1,1,x))),
-                    replicate(theta.real[4]*n,sapply(mu4.real,function(x)rbinom(1,1,x)))))
-  mu.estimate = rbind(mu1.estimate,mu2.estimate,mu3.estimate,mu4.estimate)
-  MatrixLikelihoods = matrix(NA, ncol = n, nrow = length(theta.real))
-  for(k in 1:length(theta.real)){
-    for(i in 1:n){
-      MatrixLikelihoods[k,i] = prod(mu.estimate[k,]^MatrixU[i,])
-    }
-  }
-  Community1 = Community2 = Community3 = Community4 = 0
-  Allocation = matrix(nrow = 1, ncol = n) 
-  for(i in 1:n){
-    if(MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i] & 
-       MatrixLikelihoods[1,i] == MatrixLikelihoods[3,i] &
-       MatrixLikelihoods[1,i] == MatrixLikelihoods[4,i]){#Empate entre 1, 2, 3 e 4
-      choicedraw = sample(x = c(1,2,3,4), size = 1, prob = c(theta.real[1],theta.real[2],theta.real[3],theta.real[4]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }else if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1 &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i] & 
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[3,i]){#Empate entre 1, 2 e 3
-      choicedraw = sample(x = c(1,2,3), size = 1, prob = c(theta.real[1],theta.real[2],theta.real[3]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }else if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1 &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i] &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[4,i]){#Empate entre 1, 2 e 4
-      choicedraw = sample(x = c(1,2,4), size = 1, prob = c(theta.real[1],theta.real[2],theta.real[4]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }else if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1 &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[3,i] &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[4,i]){#Empate entre 1, 3 e 4
-      choicedraw = sample(x = c(1,3,4), size = 1, prob = c(theta.real[1],theta.real[3],theta.real[4]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 2 &
-             MatrixLikelihoods[2,i] == MatrixLikelihoods[3,i] &
-             MatrixLikelihoods[2,i] == MatrixLikelihoods[4,i]){#Empate entre 2, 3 e 4
-      choicedraw = sample(x = c(2,3,4), size = 1, prob = c(theta.real[2],theta.real[3],theta.real[4]))
-      if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1 & MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i]){#Empate entre 1 e 2
-      choicedraw = sample(x = c(1,2), size = 1, prob = c(theta.real[1],theta.real[2]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1  
-      }
-      else if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1 & MatrixLikelihoods[1,i] == MatrixLikelihoods[3,i]){#Empate entre 1 e 3
-      choicedraw = sample(x = c(1,3), size = 1, prob = c(theta.real[1],theta.real[3]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }
-      else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1 & MatrixLikelihoods[1,i] == MatrixLikelihoods[4,i]){#Empate entre 1 e 4
-      choicedraw = sample(x = c(1,4), size = 1, prob = c(theta.real[1],theta.real[4]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }
-      else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 2 & MatrixLikelihoods[2,i] == MatrixLikelihoods[3,i]){#Empate entre 2 e 3
-      choicedraw = sample(x = c(2,3), size = 1, prob = c(theta.real[2],theta.real[3]))
-      if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 2 & MatrixLikelihoods[2,i] == MatrixLikelihoods[4,i]){#Empate entre 2 e 4
-      choicedraw = sample(x = c(2,4), size = 1, prob = c(theta.real[2],theta.real[4]))
-      if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 3 & MatrixLikelihoods[3,i] == MatrixLikelihoods[4,i]){#Empate entre 3 e 4
-      choicedraw = sample(x = c(3,4), size = 1, prob = c(theta.real[3],theta.real[4]))
-      if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1){
-      Community1 = Community1 + 1; Allocation[1,i] = 1
-    }else if(which.max(MatrixLikelihoods[,i]) == 2){
-      Community2 = Community2 + 1; Allocation[1,i] = 2
-    }else if(which.max(MatrixLikelihoods[,i]) == 3){
-      Community3 = Community3 + 1; Allocation[1,i] = 3
-    }else if(which.max(MatrixLikelihoods[,i]) == 4){
-      Community4 = Community4 + 1; Allocation[1,i] = 4
-    }
-  }
-  results = list()
-  results$MatrixLikelihoods = MatrixLikelihoods
-  results$Allocation = Allocation
-  results$PropAllocation = rbind(Community1/n,Community2/n,Community3/n,Community4/n)
-  return(results)
-  
-}
-AlocLikelihoodIndC5 = function(n,theta.real,
-                               mu1.real,mu2.real,mu3.real,mu4.real,mu5.real,
-                               mu1.estimate,mu2.estimate,mu3.estimate,mu4.estimate,mu5.estimate){
-  set.seed(13)
-  MatrixU = t(cbind(replicate(theta.real[1]*n,sapply(mu1.real,function(x)rbinom(1,1,x))), 
-                    replicate(theta.real[2]*n,sapply(mu2.real,function(x)rbinom(1,1,x))),
-                    replicate(theta.real[3]*n,sapply(mu3.real,function(x)rbinom(1,1,x))),
-                    replicate(theta.real[4]*n,sapply(mu4.real,function(x)rbinom(1,1,x))),
-                    replicate(theta.real[5]*n,sapply(mu5.real,function(x)rbinom(1,1,x)))))
-  mu.estimate = rbind(mu1.estimate,mu2.estimate,mu3.estimate,mu4.estimate,mu5.estimate)
-  MatrixLikelihoods = matrix(NA, ncol = n, nrow = length(theta.real))
-  for(k in 1:length(theta.real)){
-    for(i in 1:n){
-      MatrixLikelihoods[k,i] = prod(mu.estimate[k,]^MatrixU[i,])
-    }
-  }
-  Community1 = Community2 = Community3 = Community4 = Community5 = 0
-  Allocation = matrix(nrow = 1, ncol = n) 
-  for(i in 1:n){
-    if(MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i] & 
-       MatrixLikelihoods[1,i] == MatrixLikelihoods[3,i] &
-       MatrixLikelihoods[1,i] == MatrixLikelihoods[4,i] &
-       MatrixLikelihoods[1,i] == MatrixLikelihoods[5,i]){#Empate entre 1, 2, 3, 4 e 5
-      choicedraw = sample(x = c(1,2,3,4,5), size = 1, prob = c(theta.real[1],theta.real[2],theta.real[3],theta.real[4],theta.real[5]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }else if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }else if(choicedraw == 5){ 
-        Community5 = Community5 + 1; Allocation[1,i] = 5 
-      }
-    }else if(MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i] & 
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[3,i] &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[4,i]){#Empate entre 1, 2, 3 e 4
-      choicedraw = sample(x = c(1,2,3,4), size = 1, prob = c(theta.real[1],theta.real[2],theta.real[3],theta.real[4]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }else if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }
-    }else if(MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i] & 
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[3,i] &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[5,i]){#Empate entre 1, 2, 3 e 5
-      choicedraw = sample(x = c(1,2,3,5), size = 1, prob = c(theta.real[1],theta.real[2],theta.real[3],theta.real[5]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }else if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }else if(choicedraw == 5){ 
-        Community5 = Community5 + 1; Allocation[1,i] = 5 
-      }
-    }else if(MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i] & 
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[4,i] &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[5,i]){#Empate entre 1, 2, 4 e 5
-      choicedraw = sample(x = c(1,2,4,5), size = 1, prob = c(theta.real[1],theta.real[2],theta.real[4],theta.real[5]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }else if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }else if(choicedraw == 5){ 
-        Community5 = Community5 + 1; Allocation[1,i] = 5 
-      }
-    }else if(MatrixLikelihoods[1,i] == MatrixLikelihoods[3,i] & 
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[4,i] &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[5,i]){#Empate entre 1, 3, 4 e 5
-      choicedraw = sample(x = c(1,3,4,5), size = 1, prob = c(theta.real[1],theta.real[3],theta.real[4],theta.real[5]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }else if(choicedraw == 5){ 
-        Community5 = Community5 + 1; Allocation[1,i] = 5 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1 &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i] & 
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[3,i]){#Empate entre 1, 2 e 3
-      choicedraw = sample(x = c(1,2,3), size = 1, prob = c(theta.real[1],theta.real[2],theta.real[3]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }else if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1 &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i] &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[4,i]){#Empate entre 1, 2 e 4
-      choicedraw = sample(x = c(1,2,4), size = 1, prob = c(theta.real[1],theta.real[2],theta.real[4]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }else if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1 &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i] &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[5,i]){#Empate entre 1, 2 e 5
-      choicedraw = sample(x = c(1,2,5), size = 1, prob = c(theta.real[1],theta.real[2],theta.real[5]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }else if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 5){ 
-        Community5 = Community5 + 1; Allocation[1,i] = 5 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1 &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[3,i] &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[4,i]){#Empate entre 1, 3 e 4
-      choicedraw = sample(x = c(1,3,4), size = 1, prob = c(theta.real[1],theta.real[3],theta.real[4]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1 &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[3,i] &
-             MatrixLikelihoods[1,i] == MatrixLikelihoods[5,i]){#Empate entre 1, 3 e 5
-      choicedraw = sample(x = c(1,3,5), size = 1, prob = c(theta.real[1],theta.real[3],theta.real[5]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }else if(choicedraw == 5){ 
-        Community5 = Community5 + 1; Allocation[1,i] = 5 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 2 &
-             MatrixLikelihoods[2,i] == MatrixLikelihoods[3,i] &
-             MatrixLikelihoods[2,i] == MatrixLikelihoods[4,i]){#Empate entre 2, 3 e 4
-      choicedraw = sample(x = c(2,3,4), size = 1, prob = c(theta.real[2],theta.real[3],theta.real[4]))
-      if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 2 &
-             MatrixLikelihoods[2,i] == MatrixLikelihoods[3,i] &
-             MatrixLikelihoods[2,i] == MatrixLikelihoods[5,i]){#Empate entre 2, 3 e 5
-      choicedraw = sample(x = c(2,3,5), size = 1, prob = c(theta.real[2],theta.real[3],theta.real[5]))
-      if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }else if(choicedraw == 5){ 
-        Community5 = Community5 + 1; Allocation[1,i] = 5 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 3 &
-             MatrixLikelihoods[3,i] == MatrixLikelihoods[4,i] &
-             MatrixLikelihoods[3,i] == MatrixLikelihoods[5,i]){#Empate entre 3, 4 e 5
-      choicedraw = sample(x = c(3,4,5), size = 1, prob = c(theta.real[3],theta.real[4],theta.real[5]))
-      if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }else if(choicedraw == 5){ 
-        Community5 = Community5 + 1; Allocation[1,i] = 5 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1 & MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i]){#Empate entre 1 e 2
-      choicedraw = sample(x = c(1,2), size = 1, prob = c(theta.real[1],theta.real[2]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1  
-      }
-      else if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1 & MatrixLikelihoods[1,i] == MatrixLikelihoods[3,i]){#Empate entre 1 e 3
-      choicedraw = sample(x = c(1,3), size = 1, prob = c(theta.real[1],theta.real[3]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }
-      else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1 & MatrixLikelihoods[1,i] == MatrixLikelihoods[4,i]){#Empate entre 1 e 4
-      choicedraw = sample(x = c(1,4), size = 1, prob = c(theta.real[1],theta.real[4]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }
-      else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1 & MatrixLikelihoods[1,i] == MatrixLikelihoods[5,i]){#Empate entre 1 e 5
-      choicedraw = sample(x = c(1,5), size = 1, prob = c(theta.real[1],theta.real[5]))
-      if(choicedraw == 1){ 
-        Community1 = Community1 + 1; Allocation[1,i] = 1 
-      }
-      else if(choicedraw == 5){ 
-        Community5 = Community5 + 1; Allocation[1,i] = 5 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 2 & MatrixLikelihoods[2,i] == MatrixLikelihoods[3,i]){#Empate entre 2 e 3
-      choicedraw = sample(x = c(2,3), size = 1, prob = c(theta.real[2],theta.real[3]))
-      if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 2 & MatrixLikelihoods[2,i] == MatrixLikelihoods[4,i]){#Empate entre 2 e 4
-      choicedraw = sample(x = c(2,4), size = 1, prob = c(theta.real[2],theta.real[4]))
-      if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 2 & MatrixLikelihoods[2,i] == MatrixLikelihoods[5,i]){#Empate entre 2 e 5
-      choicedraw = sample(x = c(2,5), size = 1, prob = c(theta.real[2],theta.real[5]))
-      if(choicedraw == 2){ 
-        Community2 = Community2 + 1; Allocation[1,i] = 2 
-      }else if(choicedraw == 5){ 
-        Community5 = Community5 + 1; Allocation[1,i] = 5 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 3 & MatrixLikelihoods[3,i] == MatrixLikelihoods[4,i]){#Empate entre 3 e 4
-      choicedraw = sample(x = c(3,4), size = 1, prob = c(theta.real[3],theta.real[4]))
-      if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }else if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 3 & MatrixLikelihoods[3,i] == MatrixLikelihoods[5,i]){#Empate entre 3 e 5
-      choicedraw = sample(x = c(3,5), size = 1, prob = c(theta.real[3],theta.real[5]))
-      if(choicedraw == 3){ 
-        Community3 = Community3 + 1; Allocation[1,i] = 3 
-      }else if(choicedraw == 5){ 
-        Community5 = Community5 + 1; Allocation[1,i] = 5 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 4 & MatrixLikelihoods[4,i] == MatrixLikelihoods[5,i]){#Empate entre 4 e 5
-      choicedraw = sample(x = c(4,5), size = 1, prob = c(theta.real[4],theta.real[5]))
-      if(choicedraw == 4){ 
-        Community4 = Community4 + 1; Allocation[1,i] = 4 
-      }else if(choicedraw == 5){ 
-        Community5 = Community5 + 1; Allocation[1,i] = 5 
-      }
-    }else if(which.max(MatrixLikelihoods[,i]) == 1){
-      Community1 = Community1 + 1; Allocation[1,i] = 1
-    }else if(which.max(MatrixLikelihoods[,i]) == 2){
-      Community2 = Community2 + 1; Allocation[1,i] = 2
-    }else if(which.max(MatrixLikelihoods[,i]) == 3){
-      Community3 = Community3 + 1; Allocation[1,i] = 3
-    }else if(which.max(MatrixLikelihoods[,i]) == 4){
-      Community4 = Community4 + 1; Allocation[1,i] = 4
-    }else if(which.max(MatrixLikelihoods[,i]) == 5){
-      Community5 = Community5 + 1; Allocation[1,i] = 5
-    }
-  }
-  results = list()
-  results$MatrixLikelihoods = MatrixLikelihoods
-  results$Allocation = Allocation
-  results$PropAllocation = rbind(Community1/n,Community2/n,Community3/n,Community4/n,Community5/n)
+  results$PropAllocation = rbind(Community1/dim(MatrizU)[1],Community2/dim(MatrizU)[1],Community3/dim(MatrizU)[1])
   return(results)
   
 }
 
-####=======================
-#### Simulação 1: Extremos
-####=======================
-# 1. Inicialização
-set.seed(13)
-n_pessoas = 10
-n_palavras = 9
-matriz_medidas = matrix(0, nrow = n_pessoas, ncol = n_palavras)
+# 1. Parâmetros atualizados
+n_pessoas <- 100
+n_palavras <- 20
+p_ij <- matrix(0, nrow = n_pessoas, ncol = n_palavras)
 cluster_real <- rep(NA, n_pessoas)
 
-# 2. Gerar as medidas por grupo
-for (i in 1:n_pessoas) {
-  if (i <= 3) {
-    matriz_medidas[i, 1:3] = runif(3)
-    cluster_real[i] = 1
-  } else if (i <= 6) {
-    matriz_medidas[i, 4:6] = runif(3)
-    cluster_real[i] = 2
-  } else {
-    matriz_medidas[i, 7:9] = runif(3)
-    cluster_real[i] = 3
-  }
-}
-matriz_medidas
+# 2. Medidas fixas por grupo
+medida1 <- c(runif(8, 0.7, 1), runif(12, 0.0, 0.1))
+medida2 <- c(runif(8, 0.1, 0.2), runif(7, 0.8, 1), runif(5, 0.1, 0.2))
+medida3 <- c(runif(15, 0.1, 0.3), runif(5, 0.9, 1))
 
-# 3. Criação da matriz U
-matriz_binaria = matrix(0, nrow = n_pessoas, ncol = n_palavras)
-for (i in 1:n_pessoas) {
-  top_3 = order(matriz_medidas[i, ], decreasing = TRUE)[1:3]
-  matriz_binaria[i, top_3] = 1
-}
-matriz_binaria
-
-# 4. Criar grafo bipartido
-linhas = which(matriz_binaria == 1, arr.ind = TRUE)
-edges = cbind(paste0("p", linhas[,1]), paste0("w", linhas[,2]))
-g_bipartido = graph_from_edgelist(edges, directed = FALSE)
-V(g_bipartido)$type = grepl("^w", V(g_bipartido)$name)
-
-# 5. Projetar grafo entre pessoas
-g_pessoas = bipartite_projection(g_bipartido)$proj1
-
-# 6. Comunidades e modularidade
-comunidades = cluster_louvain(g_pessoas)
-modularidade = modularity(comunidades)
-cat("Modularidade:", modularidade, "\n")
-
-# 7. Plot do grafo
-plot(comunidades, g_pessoas, vertex.label = V(g_pessoas)$name, vertex.color = comunidades$membership,
-     vertex.size = 30, edge.width = 2, main = "Grafo de Pessoas com Comunidades (Louvain)")
-
-# 8. Alocações
-data.frame(
-  id = V(g_pessoas)$name,
-  cluster_real = cluster_real[as.numeric(sub("p", "", V(g_pessoas)$name))],
-  cluster_modularidade = comunidades$membership
-)
-
-AlocTableSim1N1000 = AlocLikelihoodIndC2(n = 60, theta.real = c(0.30,0.70),
-                                         mu1.real = c(0.00,0.10,0.40,0.10,0.00),
-                                         mu2.real = c(0.30,0.40,0.10,0.90,0.80),
-                                         mu1.estimate = c(Sim1N1000$mu.medium[1,]),
-                                         mu2.estimate = c(Sim1N1000$mu.medium[2,]));
-AlocTableSim1N1000$PropAllocation
-
-####===================================================================================
-#### Simulação 2: uma comunidade com medida alta e duas comunidades com medidas baixas
-####===================================================================================
-# 1. Inicialização
-set.seed(13)
-n_pessoas = 100
-n_palavras = 90
-matriz_medidas = matrix(0, nrow = n_pessoas, ncol = n_palavras)
-cluster_real <- rep(NA, n_pessoas)
-
-# 2. Gerar medidas por grupo
+# 3. Atribuição dos grupos (mesmo número de pessoas por grupo, ajustado)
 for (i in 1:n_pessoas) {
   if (i <= 33) {
-    medida1 = runif(n_palavras, min = 0.7, max = 1)  # Grupo 1
-    matriz_medidas[i, ] = medida1
-    cluster_real[i] = 1
+    p_ij[i, ] <- medida1
+    cluster_real[i] <- 1
   } else if (i <= 66) {
-    medida2 = runif(n_palavras, min = 0, max = 0.2)  # Grupo 2
-    matriz_medidas[i, ] = medida2
-    cluster_real[i] = 2
+    p_ij[i, ] <- medida2
+    cluster_real[i] <- 2
   } else {
-    medida3 = runif(n_palavras, min = 0.1, max = 0.3)  # Grupo 3
-    matriz_medidas[i, ] = medida3
-    cluster_real[i] = 3
+    p_ij[i, ] <- medida3
+    cluster_real[i] <- 3
   }
 }
-matriz_medidas
 
-# 3. Criar matriz binária U com top 5 palavras por pessoa
-matriz_binaria = matrix(0, nrow = n_pessoas, ncol = n_palavras)
-for (i in 1:n_pessoas) {
-  top_5 = order(matriz_medidas[i, ], decreasing = TRUE)[1:5]
-  matriz_binaria[i, top_5] = 1
+# 4. Gerar U_ij
+U_ij <- matrix(runif(n_pessoas * n_palavras) < p_ij, nrow = n_pessoas, ncol = n_palavras) * 1
+
+# 5. Criar rede bipartida e projetar
+g_bip <- graph.incidence(U_ij)
+proj <- bipartite.projection(g_bip)$proj1
+V(proj)$grupo <- cluster_real
+
+# 6. Modularidade
+mod <- modularity(proj, membership = cluster_real)
+print(mod)
+
+# 7. Detectar comunidades com método de Louvain (pode trocar por outro)
+comunidades_mod <- cluster_louvain(proj)
+
+# 8. Obter vetor de alocação (comunidade detectada para cada pessoa)
+aloc_modularidade <- comunidades_mod$membership
+
+# 9. Ver alocação
+print(aloc_modularidade)
+table(aloc_modularidade)
+table(resultados_aloc_EM$Allocation)
+
+####=====
+#### BIC
+####=====
+freq_relativa_Grupo1 = colSums(U_ij[1:33,]) / sum(U_ij[1:33,])
+freq_relativa_Grupo2 = colSums(U_ij[34:66,]) / sum(U_ij[34:66,])
+freq_relativa_Grupo3 = colSums(U_ij[67:100,]) / sum(U_ij[67:100,])
+
+kGrupo1 = length(freq_relativa_Grupo1)
+nGrupo1 = dim(U_ij[1:33,])[1]
+
+kGrupo2 = length(freq_relativa_Grupo2)
+nGrupo2 = dim(U_ij[34:66,])[1]
+
+kGrupo3 = length(freq_relativa_Grupo3)
+nGrupo3 = dim(U_ij[67:100,])[1]
+
+####=======================
+#### Nº de comunidades = 1
+####=======================
+# Grupo 1
+theta1.Grupo1.C1 = 1
+somaGrupo1C1BIC = matrix(ncol = 1, nrow = dim(U_ij[1:33,])[1])
+for(i in 1:dim(U_ij[1:33,])[1]){
+  somaGrupo1C1BIC[i,1] = log(sum(theta1.Grupo1.C1*(freq_relativa_Grupo1^U_ij[i,])))
 }
-matriz_binaria
+somaGrupo1C1BIC
 
-# 4. Criar grafo bipartido
-linhas = which(matriz_binaria == 1, arr.ind = TRUE)
-edges = cbind(paste0("p", linhas[,1]), paste0("w", linhas[,2]))
-g_bipartido = graph_from_edgelist(edges, directed = FALSE)
-V(g_bipartido)$type = grepl("^w", V(g_bipartido)$name)
+deltaC1Grupo1 = (2*kGrupo1)-2
+BICGrupo1C1 = (2*sum(somaGrupo1C1BIC[,1]))-(deltaC1Grupo1*log(nGrupo1))
+BICGrupo1C1
 
-# 5. Projetar grafo entre pessoas
-g_pessoas = bipartite_projection(g_bipartido)$proj1
+# Grupo 2
+theta1.Grupo2.C1 = 1
+somaGrupo2C1BIC = matrix(ncol = 1, nrow = dim(U_ij[34:66,])[1])
+for(i in 1:dim(U_ij[34:66,])[1]){
+  somaGrupo2C1BIC[i,1] = log(sum(theta1.Grupo2.C1*(freq_relativa_Grupo2^U_ij[i,])))
+}
+somaGrupo2C1BIC
 
-# 6. Comunidades e modularidade
-comunidades = cluster_louvain(g_pessoas)
-modularidade = modularity(comunidades)
-cat("Modularidade:", modularidade, "\n")
+deltaC1Grupo2 = (2*kGrupo2)-2
+BICGrupo2C1 = (2*sum(somaGrupo2C1BIC[,1]))-(deltaC1Grupo2*log(nGrupo2))
+BICGrupo2C1
 
-# 7. Plot do grafo
-plot(comunidades, g_pessoas, vertex.label = V(g_pessoas)$name, vertex.color = comunidades$membership,
-     vertex.size = 30, edge.width = 2, main = "Grafo de Pessoas com Comunidades (Louvain)")
+# Grupo 3
+theta1.Grupo3.C1 = 1
+somaGrupo3C1BIC = matrix(ncol = 1, nrow = dim(U_ij[67:100,])[1])
+for(i in 1:dim(U_ij[67:100,])[1]){
+  somaGrupo3C1BIC[i,1] = log(sum(theta1.Grupo3.C1*(freq_relativa_Grupo3^U_ij[i,])))
+}
+somaGrupo3C1BIC
 
-data.frame(
-  id = V(g_pessoas)$name,
-  cluster_real = cluster_real[as.numeric(sub("p", "", V(g_pessoas)$name))],
-  cluster_modularidade = comunidades$membership
-)
+deltaC1Grupo3 = (2*kGrupo3)-2
+BICGrupo3C1 = (2*sum(somaGrupo3C1BIC[,1]))-(deltaC1Grupo3*log(nGrupo3))
+BICGrupo3C1
 
-
+####=======================
+#### Nº de comunidades = 2
+####=======================
+# Grupo 1
 set.seed(13)
-MatrixU = matriz_binaria
-mu.estimate = rbind(medida1,medida2,medida3)
-n = n_pessoas
-theta.real = c(0.3,0.3,0.4)
-MatrixLikelihoods = matrix(NA, ncol = n, nrow = length(theta.real))
-for(k in 1:length(theta.real)){
-  for(i in 1:n){
-    MatrixLikelihoods[k,i] = prod(mu.estimate[k,]^MatrixU[i,])
-  }
+Grupo1C2inicialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[1:33,])[2]))
+set.seed(1968)
+Grupo1C2inicialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[1:33,])[2]))
+
+dicionarioGrupo1 = c(seq(1:20))
+
+Grupo1C2BIC = 
+  SimulacoesC2EM(C = 2, nsim = 1, Matriz.real = U_ij[1:33,],
+                 mu1.inicial = Grupo1C2inicialC1,
+                 mu2.inicial = Grupo1C2inicialC2)
+TabelaGrupo1C2BIC = cbind(rbind(mean(Grupo1C2BIC$theta[,1]),mean(Grupo1C2BIC$theta[,2])),
+                           Grupo1C2BIC$mu.media)
+colnames(TabelaGrupo1C2BIC) = c("theta",dicionarioGrupo1);TabelaGrupo1C2BIC
+
+somaGrupo1C2BIC = matrix(ncol = 1, nrow = dim(U_ij[1:33,])[1])
+
+theta1.Grupo1.C2 = TabelaGrupo1C2BIC[1,1]
+theta2.Grupo1.C2 = TabelaGrupo1C2BIC[2,1]
+
+mu1.estimada.Grupo1.C2 = TabelaGrupo1C2BIC[1,2:dim(TabelaGrupo1C2BIC)[2]]
+mu1.padronizada.Grupo1.C2 = mu1.estimada.Grupo1.C2/sum(TabelaGrupo1C2BIC[1,2:dim(TabelaGrupo1C2BIC)[2]])
+mu2.estimada.Grupo1.C2 = TabelaGrupo1C2BIC[2,2:dim(TabelaGrupo1C2BIC)[2]]
+mu2.padronizada.Grupo1.C2 = mu2.estimada.Grupo1.C2/sum(TabelaGrupo1C2BIC[2,2:dim(TabelaGrupo1C2BIC)[2]])
+
+for(i in 1:dim(U_ij[1:33,])[1]){
+  somaGrupo1C2BIC[i,1] = 
+    log( 
+      (theta1.Grupo1.C2 * sum(mu1.padronizada.Grupo1.C2^U_ij[i,]))+
+        (theta2.Grupo1.C2 * sum(mu2.padronizada.Grupo1.C2^U_ij[i,]))
+    )
 }
-Community1 = Community2 = 0
-Allocation = matrix(nrow = 1, ncol = n) 
-for(i in 1:n){
-  if(MatrixLikelihoods[1,i] == MatrixLikelihoods[2,i]){
-    choicedraw = sample(x = c(1,2), size = 1, prob = c(theta.real[1],theta.real[2]))
-    if(choicedraw == 1){
-      Community1 = Community1 + 1
-      Allocation[1,i] = 1
-    }else if(choicedraw == 2){
-      Community2 = Community2 + 1
-      Allocation[1,i] = 2
-    }
-  }else 
-    if(which.max(MatrixLikelihoods[,i]) == 1){
-      Community1 = Community1 + 1
-      Allocation[1,i] = 1
-    }else if(which.max(MatrixLikelihoods[,i]) == 2){
-      Community2 = Community2 + 1
-      Allocation[1,i] = 2
-    }
+somaGrupo1C2BIC
+deltaC2Grupo1 = (2*kGrupo1)-1
+BICGrupo1C2 = (2*sum(somaGrupo1C2BIC[,1]))-(deltaC2Grupo1*log(nGrupo1))
+BICGrupo1C2
+
+# Grupo 2
+set.seed(13)
+Grupo2C2inicialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[34:66,])[2]))
+set.seed(1968)
+Grupo2C2inicialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[34:66,])[2]))
+
+dicionarioGrupo2 = c(seq(1:20))
+
+Grupo2C2BIC = 
+  SimulacoesC2EM(C = 2, nsim = 1, Matriz.real = U_ij[34:66,],
+                 mu1.inicial = Grupo2C2inicialC1,
+                 mu2.inicial = Grupo2C2inicialC2)
+TabelaGrupo2C2BIC = cbind(rbind(mean(Grupo2C2BIC$theta[,1]),mean(Grupo2C2BIC$theta[,2])),
+                           Grupo2C2BIC$mu.media)
+colnames(TabelaGrupo2C2BIC) = c("theta",dicionarioGrupo2);TabelaGrupo2C2BIC
+
+somaGrupo2C2BIC = matrix(ncol = 1, nrow = dim(U_ij[34:66,])[1])
+
+theta1.Grupo2.C2 = TabelaGrupo2C2BIC[1,1]
+theta2.Grupo2.C2 = TabelaGrupo2C2BIC[2,1]
+
+mu1.estimada.Grupo2.C2 = TabelaGrupo2C2BIC[1,2:dim(TabelaGrupo2C2BIC)[2]]
+mu1.padronizada.Grupo2.C2 = mu1.estimada.Grupo2.C2/sum(TabelaGrupo2C2BIC[1,2:dim(TabelaGrupo2C2BIC)[2]])
+mu2.estimada.Grupo2.C2 = TabelaGrupo2C2BIC[2,2:dim(TabelaGrupo2C2BIC)[2]]
+mu2.padronizada.Grupo2.C2 = mu2.estimada.Grupo2.C2/sum(TabelaGrupo2C2BIC[2,2:dim(TabelaGrupo2C2BIC)[2]])
+
+for(i in 1:dim(U_ij[34:66,])[1]){
+  somaGrupo2C2BIC[i,1] = 
+    log( 
+      (theta1.Grupo2.C2 * sum(mu1.padronizada.Grupo2.C2^U_ij[i,]))+
+        (theta2.Grupo2.C2 * sum(mu2.padronizada.Grupo2.C2^U_ij[i,]))
+    )
 }
-results = list()
-results$MatrixLikelihoods = MatrixLikelihoods
-results$Allocation = Allocation
-results$PropAllocation = rbind(Community1/n,Community2/n)
+somaGrupo2C2BIC
+deltaC2Grupo2 = (2*kGrupo2)-1
+BICGrupo2C2 = (2*sum(somaGrupo2C2BIC[,1]))-(deltaC2Grupo2*log(nGrupo2))
+BICGrupo2C2
+
+# Grupo 3
+set.seed(13)
+Grupo3C2inicialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[67:100,])[2]))
+set.seed(1968)
+Grupo3C2inicialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[67:100,])[2]))
+
+dicionarioGrupo3 = c(seq(1:20))
+
+Grupo3C2BIC = 
+  SimulacoesC2EM(C = 2, nsim = 1, Matriz.real = U_ij[67:100,],
+                 mu1.inicial = Grupo3C2inicialC1,
+                 mu2.inicial = Grupo3C2inicialC2)
+TabelaGrupo3C2BIC = cbind(rbind(mean(Grupo3C2BIC$theta[,1]),mean(Grupo3C2BIC$theta[,2])),
+                           Grupo3C2BIC$mu.media)
+colnames(TabelaGrupo3C2BIC) = c("theta",dicionarioGrupo3);TabelaGrupo3C2BIC
+
+somaGrupo3C2BIC = matrix(ncol = 1, nrow = dim(U_ij[67:100,])[1])
+
+theta1.Grupo3.C2 = TabelaGrupo3C2BIC[1,1]
+theta2.Grupo3.C2 = TabelaGrupo3C2BIC[2,1]
+
+mu1.estimada.Grupo3.C2 = TabelaGrupo3C2BIC[1,2:dim(TabelaGrupo3C2BIC)[2]]
+mu1.padronizada.Grupo3.C2 = mu1.estimada.Grupo3.C2/sum(TabelaGrupo3C2BIC[1,2:dim(TabelaGrupo3C2BIC)[2]])
+mu2.estimada.Grupo3.C2 = TabelaGrupo3C2BIC[2,2:dim(TabelaGrupo3C2BIC)[2]]
+mu2.padronizada.Grupo3.C2 = mu2.estimada.Grupo3.C2/sum(TabelaGrupo3C2BIC[2,2:dim(TabelaGrupo3C2BIC)[2]])
+
+for(i in 1:dim(U_ij[67:100,])[1]){
+  somaGrupo3C2BIC[i,1] = 
+    log( 
+      (theta1.Grupo3.C2 * sum(mu1.padronizada.Grupo3.C2^U_ij[i,]))+
+        (theta2.Grupo3.C2 * sum(mu2.padronizada.Grupo3.C2^U_ij[i,]))
+    )
+}
+somaGrupo3C2BIC
+deltaC2Grupo3 = (2*kGrupo3)-1
+BICGrupo3C2 = (2*sum(somaGrupo3C2BIC[,1]))-(deltaC2Grupo3*log(nGrupo3))
+BICGrupo3C2
+
+####=======================
+#### Nº de comunidades = 3
+####=======================
+# Grupo 1
+set.seed(13)
+Grupo1C3inicialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[1:33,])[2]))
+set.seed(1968)
+Grupo1C3inicialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[1:33,])[2]))
+set.seed(100)
+Grupo1C3inicialC3 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[1:33,])[2]))
+
+#Tempo grande para execução
+Grupo1C3BIC = 
+  SimulacoesC3EM(C = 3, nsim = 1, Matriz.real = U_ij[1:33,],
+                 mu1.inicial = Grupo1C3inicialC1,
+                 mu2.inicial = Grupo1C3inicialC2,
+                 mu3.inicial = Grupo1C3inicialC3)
+TabelaGrupo1C3BIC = cbind(rbind(mean(Grupo1C3BIC$theta[,1]),
+                                mean(Grupo1C3BIC$theta[,2]),
+                                mean(Grupo1C3BIC$theta[,3])),
+                          Grupo1C3BIC$mu.media)
+colnames(TabelaGrupo1C3BIC) = c("theta",dicionarioGrupo1);TabelaGrupo1C3BIC
+
+somaGrupo1C3BIC = matrix(ncol = 1, nrow = dim(U_ij[1:33,])[1])
+
+theta1.Grupo1.C3 = TabelaGrupo1C3BIC[1,1]
+theta2.Grupo1.C3 = TabelaGrupo1C3BIC[2,1]
+theta3.Grupo1.C3 = TabelaGrupo1C3BIC[3,1]
+
+mu1.estimada.Grupo1.C3 = TabelaGrupo1C3BIC[1,2:dim(TabelaGrupo1C3BIC)[2]]
+mu1.padronizada.Grupo1.C3 = mu1.estimada.Grupo1.C3/sum(TabelaGrupo1C3BIC[1,2:dim(TabelaGrupo1C3BIC)[2]])
+mu2.estimada.Grupo1.C3 = TabelaGrupo1C3BIC[2,2:dim(TabelaGrupo1C3BIC)[2]]
+mu2.padronizada.Grupo1.C3 = mu2.estimada.Grupo1.C3/sum(TabelaGrupo1C3BIC[2,2:dim(TabelaGrupo1C3BIC)[2]])
+mu3.estimada.Grupo1.C3 = TabelaGrupo1C3BIC[3,2:dim(TabelaGrupo1C3BIC)[2]]
+mu3.padronizada.Grupo1.C3 = mu3.estimada.Grupo1.C3/sum(TabelaGrupo1C3BIC[3,2:dim(TabelaGrupo1C3BIC)[2]])
+
+for(i in 1:dim(U_ij[1:33,])[1]){
+  somaGrupo1C3BIC[i,1] = 
+    log(
+      (theta1.Grupo1.C3 * sum((mu1.padronizada.Grupo1.C3^U_ij[i,]) ))+
+        (theta2.Grupo1.C3 * sum((mu2.padronizada.Grupo1.C3^U_ij[i,]) ))+
+        (theta3.Grupo1.C3 * sum((mu3.padronizada.Grupo1.C3^U_ij[i,]) ))
+    )
+}
+somaGrupo1C3BIC
+deltaC3Grupo1 = (2*kGrupo1)
+BICGrupo1C3 = (2*sum(somaGrupo1C3BIC[,1]))-(deltaC3Grupo1*log(nGrupo1))
+BICGrupo1C3
+
+# Grupo 2
+set.seed(13)
+Grupo2C3inicialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[34:66,])[2]))
+set.seed(1968)
+Grupo2C3inicialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[34:66,])[2]))
+set.seed(100)
+Grupo2C3inicialC3 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[34:66,])[2]))
+
+#Tempo grande para execução
+Grupo2C3BIC = 
+  SimulacoesC3EM(C = 3, nsim = 1, Matriz.real = U_ij[34:66,],
+                 mu1.inicial = Grupo2C3inicialC1,
+                 mu2.inicial = Grupo2C3inicialC2,
+                 mu3.inicial = Grupo2C3inicialC3)
+TabelaGrupo2C3BIC = cbind(rbind(mean(Grupo2C3BIC$theta[,1]),
+                                mean(Grupo2C3BIC$theta[,2]),
+                                mean(Grupo2C3BIC$theta[,3])),
+                          Grupo2C3BIC$mu.media)
+colnames(TabelaGrupo2C3BIC) = c("theta",dicionarioGrupo2);TabelaGrupo2C3BIC
+
+somaGrupo2C3BIC = matrix(ncol = 1, nrow = dim(U_ij[34:66,])[1])
+
+theta1.Grupo2.C3 = TabelaGrupo2C3BIC[1,1]
+theta2.Grupo2.C3 = TabelaGrupo2C3BIC[2,1]
+theta3.Grupo2.C3 = TabelaGrupo2C3BIC[3,1]
+
+mu1.estimada.Grupo2.C3 = TabelaGrupo2C3BIC[1,2:dim(TabelaGrupo2C3BIC)[2]]
+mu1.padronizada.Grupo2.C3 = mu1.estimada.Grupo2.C3/sum(TabelaGrupo2C3BIC[1,2:dim(TabelaGrupo2C3BIC)[2]])
+mu2.estimada.Grupo2.C3 = TabelaGrupo2C3BIC[2,2:dim(TabelaGrupo2C3BIC)[2]]
+mu2.padronizada.Grupo2.C3 = mu2.estimada.Grupo2.C3/sum(TabelaGrupo2C3BIC[2,2:dim(TabelaGrupo2C3BIC)[2]])
+mu3.estimada.Grupo2.C3 = TabelaGrupo2C3BIC[3,2:dim(TabelaGrupo2C3BIC)[2]]
+mu3.padronizada.Grupo2.C3 = mu3.estimada.Grupo2.C3/sum(TabelaGrupo2C3BIC[3,2:dim(TabelaGrupo2C3BIC)[2]])
+
+for(i in 1:dim(U_ij[34:66,])[1]){
+  somaGrupo2C3BIC[i,1] = 
+    log(
+      (theta1.Grupo2.C3 * sum((mu1.padronizada.Grupo2.C3^U_ij[i,]) ))+
+        (theta2.Grupo2.C3 * sum((mu2.padronizada.Grupo2.C3^U_ij[i,]) ))+
+        (theta3.Grupo2.C3 * sum((mu3.padronizada.Grupo2.C3^U_ij[i,]) ))
+    )
+}
+somaGrupo2C3BIC
+deltaC3Grupo2 = (2*kGrupo2)
+BICGrupo2C3 = (2*sum(somaGrupo2C3BIC[,1]))-(deltaC3Grupo2*log(nGrupo2))
+BICGrupo2C3
+
+# Grupo 3
+set.seed(13)
+Grupo3C3inicialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[67:100,])[2]))
+set.seed(1968)
+Grupo3C3inicialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[67:100,])[2]))
+set.seed(100)
+Grupo3C3inicialC3 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[67:100,])[2]))
+
+#Tempo grande para execução
+Grupo3C3BIC = 
+  SimulacoesC3EM(C = 3, nsim = 1, Matriz.real = U_ij[67:100,],
+                 mu1.inicial = Grupo3C3inicialC1,
+                 mu2.inicial = Grupo3C3inicialC2,
+                 mu3.inicial = Grupo3C3inicialC3)
+TabelaGrupo3C3BIC = cbind(rbind(mean(Grupo3C3BIC$theta[,1]),
+                                mean(Grupo3C3BIC$theta[,2]),
+                                mean(Grupo3C3BIC$theta[,3])),
+                          Grupo3C3BIC$mu.media)
+colnames(TabelaGrupo3C3BIC) = c("theta",dicionarioGrupo3);TabelaGrupo3C3BIC
+
+somaGrupo3C3BIC = matrix(ncol = 1, nrow = dim(U_ij[67:100,])[1])
+
+theta1.Grupo3.C3 = TabelaGrupo3C3BIC[1,1]
+theta2.Grupo3.C3 = TabelaGrupo3C3BIC[2,1]
+theta3.Grupo3.C3 = TabelaGrupo3C3BIC[3,1]
+
+mu1.estimada.Grupo3.C3 = TabelaGrupo3C3BIC[1,2:dim(TabelaGrupo3C3BIC)[2]]
+mu1.padronizada.Grupo3.C3 = mu1.estimada.Grupo3.C3/sum(TabelaGrupo3C3BIC[1,2:dim(TabelaGrupo3C3BIC)[2]])
+mu2.estimada.Grupo3.C3 = TabelaGrupo3C3BIC[2,2:dim(TabelaGrupo3C3BIC)[2]]
+mu2.padronizada.Grupo3.C3 = mu2.estimada.Grupo3.C3/sum(TabelaGrupo3C3BIC[2,2:dim(TabelaGrupo3C3BIC)[2]])
+mu3.estimada.Grupo3.C3 = TabelaGrupo3C3BIC[3,2:dim(TabelaGrupo3C3BIC)[2]]
+mu3.padronizada.Grupo3.C3 = mu3.estimada.Grupo3.C3/sum(TabelaGrupo3C3BIC[3,2:dim(TabelaGrupo3C3BIC)[2]])
+
+for(i in 1:dim(U_ij[67:100,])[1]){
+  somaGrupo3C3BIC[i,1] = 
+    log(
+      (theta1.Grupo3.C3 * sum((mu1.padronizada.Grupo3.C3^U_ij[i,]) ))+
+        (theta2.Grupo3.C3 * sum((mu2.padronizada.Grupo3.C3^U_ij[i,]) ))+
+        (theta3.Grupo3.C3 * sum((mu3.padronizada.Grupo3.C3^U_ij[i,]) ))
+    )
+}
+somaGrupo3C3BIC
+deltaC3Grupo3 = (2*kGrupo3)
+BICGrupo3C3 = (2*sum(somaGrupo3C3BIC[,1]))-(deltaC3Grupo3*log(nGrupo3))
+BICGrupo3C3
+
+####============
+#### Resultados
+####============
+rbind(BICGrupo1C1,BICGrupo1C2,BICGrupo1C3)
+rbind(BICGrupo2C1,BICGrupo2C2,BICGrupo2C3)
+rbind(BICGrupo3C1,BICGrupo3C2,BICGrupo3C3)
+
+resultados_aloc_EM = AlocLikelihoodIndC3(MatrizU = U_ij,
+                                         Thetas = c(0.33,0.33,0.34),
+                                         mu1.estimate = medida1,
+                                         mu2.estimate = medida2,
+                                         mu3.estimate = medida3)
