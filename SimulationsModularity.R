@@ -304,80 +304,104 @@ nGroup3 = nrow(U_ij[number_of_people_group_3, ])
 #### Nº Communities = 1
 ####====================
 # Group 1
-theta1.Group1.C1 = 1
-sumGroup1C1BIC = matrix(ncol = 1, nrow = dim(U_ij[number_of_people_group_1,])[1])
-for(i in 1:dim(U_ij[number_of_people_group_1,])[1]){
-  sumGroup1C1BIC[i,1] = log(sum(theta1.Group1.C1*(freq_relativa_Group1^U_ij[i,])))
-}
-sumGroup1C1BIC
+theta1.Group1.C1 <- 1  # Initial mixing proportion for 1-component model (fixed at 1)
+sumGroup1C1BIC <- matrix(ncol = 1, nrow = nrow(U_ij[number_of_people_group_1, ]))
 
-deltaC1Group1 = (2*kGroup1)-2
-BICGroup1C1 = (2*sum(sumGroup1C1BIC[,1]))-(deltaC1Group1*log(nGroup1))
+# Log-likelihood computation for each individual in Group 1
+for (i in 1:nrow(U_ij[number_of_people_group_1, ])) {
+  sumGroup1C1BIC[i, 1] <- log(sum(theta1.Group1.C1 * (freq_relativa_Group1 ^ U_ij[i, ])))
+}
+
+# Number of free parameters = 2 * number of words - 2
+deltaC1Group1 <- (2 * kGroup1) - 2
+
+# BIC for Group 1 with 1 component
+BICGroup1C1 <- (2 * sum(sumGroup1C1BIC[, 1])) - (deltaC1Group1 * log(nGroup1))
 BICGroup1C1
 
 # Group 2
-theta1.Group2.C1 = 1
-sumGroup2C1BIC = matrix(ncol = 1, nrow = dim(U_ij[number_of_people_group_2,])[1])
-for(i in 1:dim(U_ij[number_of_people_group_2,])[1]){
-  sumGroup2C1BIC[i,1] = log(sum(theta1.Group2.C1*(freq_relativa_Group2^U_ij[i,])))
-}
-sumGroup2C1BIC
+theta1.Group2.C1 <- 1
+sumGroup2C1BIC <- matrix(ncol = 1, nrow = nrow(U_ij[number_of_people_group_2, ]))
 
-deltaC1Group2 = (2*kGroup2)-2
-BICGroup2C1 = (2*sum(sumGroup2C1BIC[,1]))-(deltaC1Group2*log(nGroup2))
+for (i in 1:nrow(U_ij[number_of_people_group_2, ])) {
+  sumGroup2C1BIC[i, 1] <- log(sum(theta1.Group2.C1 * (freq_relativa_Group2 ^ U_ij[i, ])))
+}
+
+deltaC1Group2 <- (2 * kGroup2) - 2
+BICGroup2C1 <- (2 * sum(sumGroup2C1BIC[, 1])) - (deltaC1Group2 * log(nGroup2))
 BICGroup2C1
 
 # Group 3
-theta1.Group3.C1 = 1
-sumGroup3C1BIC = matrix(ncol = 1, nrow = dim(U_ij[number_of_people_group_3,])[1])
-for(i in 1:dim(U_ij[number_of_people_group_3,])[1]){
-  sumGroup3C1BIC[i,1] = log(sum(theta1.Group3.C1*(freq_relativa_Group3^U_ij[i,])))
-}
-sumGroup3C1BIC
+theta1.Group3.C1 <- 1
+sumGroup3C1BIC <- matrix(ncol = 1, nrow = nrow(U_ij[number_of_people_group_3, ]))
 
-deltaC1Group3 = (2*kGroup3)-2
-BICGroup3C1 = (2*sum(sumGroup3C1BIC[,1]))-(deltaC1Group3*log(nGroup3))
+for (i in 1:nrow(U_ij[number_of_people_group_3, ])) {
+  sumGroup3C1BIC[i, 1] <- log(sum(theta1.Group3.C1 * (freq_relativa_Group3 ^ U_ij[i, ])))
+}
+
+deltaC1Group3 <- (2 * kGroup3) - 2
+BICGroup3C1 <- (2 * sum(sumGroup3C1BIC[, 1])) - (deltaC1Group3 * log(nGroup3))
 BICGroup3C1
 
 ####====================
 #### Nº Communities = 2
 ####====================
 # Group 1
+# Set seed for reproducibility of initial mu1 for C=2 model
 set.seed(13)
-Group1C2initialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_1,])[2]))
-set.seed(1968)
-Group1C2initialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_1,])[2]))
+Group1C2initialC1 = rdirichlet(n = 1, alpha = rep(1, dim(U_ij[number_of_people_group_1, ])[2]))
 
+# Set another seed for reproducibility of initial mu2 for C=2 model
+set.seed(1968)
+Group1C2initialC2 = rdirichlet(n = 1, alpha = rep(1, dim(U_ij[number_of_people_group_1, ])[2]))
+
+# Dictionary to name word columns
 dicionarioGroup1 = c(seq(1:20))
 
-Group1C2BIC = 
-  SimulationsC2EM(C = 2, nsim = 1, Matriz.real = U_ij[number_of_people_group_1,],
-                  mu1.initial = Group1C2initialC1,
-                  mu2.initial = Group1C2initialC2)
-TableGroup1C2BIC = cbind(rbind(mean(Group1C2BIC$theta[,1]),mean(Group1C2BIC$theta[,2])),
-                         Group1C2BIC$mu.mean)
-colnames(TableGroup1C2BIC) = c("theta",dicionarioGroup1);TableGroup1C2BIC
+# Run EM algorithm for C = 2 clusters on Group 1 data
+Group1C2BIC = SimulationsC2EM(
+  C = 2,
+  nsim = 1,
+  Matriz.real = U_ij[number_of_people_group_1, ],
+  mu1.initial = Group1C2initialC1,
+  mu2.initial = Group1C2initialC2
+)
 
-sumGroup1C2BIC = matrix(ncol = 1, nrow = dim(U_ij[number_of_people_group_1,])[1])
+# Combine resulting theta and mu estimates into a single table
+TableGroup1C2BIC = cbind(
+  rbind(mean(Group1C2BIC$theta[, 1]), mean(Group1C2BIC$theta[, 2])),
+  Group1C2BIC$mu.mean
+)
+colnames(TableGroup1C2BIC) = c("theta", dicionarioGroup1)
+TableGroup1C2BIC
 
-theta1.Group1.C2 = TableGroup1C2BIC[1,1]
-theta2.Group1.C2 = TableGroup1C2BIC[2,1]
+# Initialize matrix to store log-likelihood per individual
+sumGroup1C2BIC = matrix(ncol = 1, nrow = dim(U_ij[number_of_people_group_1, ])[1])
 
-mu1.estimated.Group1.C2 = TableGroup1C2BIC[1,2:dim(TableGroup1C2BIC)[2]]
-mu1.standardized.Group1.C2 = mu1.estimated.Group1.C2/sum(TableGroup1C2BIC[1,2:dim(TableGroup1C2BIC)[2]])
-mu2.estimated.Group1.C2 = TableGroup1C2BIC[2,2:dim(TableGroup1C2BIC)[2]]
-mu2.standardized.Group1.C2 = mu2.estimated.Group1.C2/sum(TableGroup1C2BIC[2,2:dim(TableGroup1C2BIC)[2]])
+# Extract theta and mu estimates from the EM output
+theta1.Group1.C2 = TableGroup1C2BIC[1, 1]
+theta2.Group1.C2 = TableGroup1C2BIC[2, 1]
 
-for(i in 1:dim(U_ij[number_of_people_group_1,])[1]){
-  sumGroup1C2BIC[i,1] = 
-    log( 
-      (theta1.Group1.C2 * sum(mu1.standardized.Group1.C2^U_ij[i,]))+
-        (theta2.Group1.C2 * sum(mu2.standardized.Group1.C2^U_ij[i,]))
-    )
+mu1.estimated.Group1.C2 = TableGroup1C2BIC[1, 2:ncol(TableGroup1C2BIC)]
+mu1.standardized.Group1.C2 = mu1.estimated.Group1.C2 / sum(mu1.estimated.Group1.C2)
+
+mu2.estimated.Group1.C2 = TableGroup1C2BIC[2, 2:ncol(TableGroup1C2BIC)]
+mu2.standardized.Group1.C2 = mu2.estimated.Group1.C2 / sum(mu2.estimated.Group1.C2)
+
+# Compute the log-likelihood for each individual using the mixture model
+for (i in 1:nrow(U_ij[number_of_people_group_1, ])) {
+  sumGroup1C2BIC[i, 1] = log(
+    (theta1.Group1.C2 * sum(mu1.standardized.Group1.C2^U_ij[i, ])) +
+      (theta2.Group1.C2 * sum(mu2.standardized.Group1.C2^U_ij[i, ]))
+  )
 }
 sumGroup1C2BIC
-deltaC2Group1 = (2*kGroup1)-1
-BICGroup1C2 = (2*sum(sumGroup1C2BIC[,1]))-(deltaC2Group1*log(nGroup1))
+
+# Degrees of freedom: 2*k - 1 (theta adds one parameter vs C=1)
+deltaC2Group1 = (2 * kGroup1) - 1
+
+# Compute BIC for Group 1 with 2 components
+BICGroup1C2 = (2 * sum(sumGroup1C2BIC[, 1])) - (deltaC2Group1 * log(nGroup1))
 BICGroup1C2
 
 # Group 2
@@ -460,49 +484,70 @@ BICGroup3C2
 #### Nº Communities = 3
 ####====================
 # Group 1
+# Set seeds to generate reproducible initial values for the EM algorithm with 3 clusters
 set.seed(13)
-Group1C3initialC1 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_1,])[2]))
+Group1C3initialC1 = rdirichlet(n = 1, alpha = rep(1, dim(U_ij[number_of_people_group_1, ])[2]))
+
 set.seed(1968)
-Group1C3initialC2 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_1,])[2]))
+Group1C3initialC2 = rdirichlet(n = 1, alpha = rep(1, dim(U_ij[number_of_people_group_1, ])[2]))
+
 set.seed(100)
-Group1C3initialC3 = rdirichlet(n = 1, alpha = rep(1,dim(U_ij[number_of_people_group_1,])[2]))
+Group1C3initialC3 = rdirichlet(n = 1, alpha = rep(1, dim(U_ij[number_of_people_group_1, ])[2]))
 
-#Tempo grande para execução
-Group1C3BIC = 
-  SimulationsC3EM(C = 3, nsim = 1, Matriz.real = U_ij[number_of_people_group_1,],
-                  mu1.initial = Group1C3initialC1,
-                  mu2.initial = Group1C3initialC2,
-                  mu3.initial = Group1C3initialC3)
-TableGroup1C3BIC = cbind(rbind(mean(Group1C3BIC$theta[,1]),
-                               mean(Group1C3BIC$theta[,2]),
-                               mean(Group1C3BIC$theta[,3])),
-                         Group1C3BIC$mu.mean)
-colnames(TableGroup1C3BIC) = c("theta",dicionarioGroup1);TableGroup1C3BIC
+# Run the EM algorithm for C = 3 on Group 1 data
+Group1C3BIC = SimulationsC3EM(
+  C = 3,
+  nsim = 1,
+  Matriz.real = U_ij[number_of_people_group_1, ],
+  mu1.initial = Group1C3initialC1,
+  mu2.initial = Group1C3initialC2,
+  mu3.initial = Group1C3initialC3
+)
 
-sumGroup1C3BIC = matrix(ncol = 1, nrow = dim(U_ij[number_of_people_group_1,])[1])
+# Combine the estimated theta and mu values into a result table
+TableGroup1C3BIC = cbind(
+  rbind(
+    mean(Group1C3BIC$theta[, 1]),
+    mean(Group1C3BIC$theta[, 2]),
+    mean(Group1C3BIC$theta[, 3])
+  ),
+  Group1C3BIC$mu.mean
+)
+colnames(TableGroup1C3BIC) = c("theta", dicionarioGroup1)
+TableGroup1C3BIC
 
-theta1.Group1.C3 = TableGroup1C3BIC[1,1]
-theta2.Group1.C3 = TableGroup1C3BIC[2,1]
-theta3.Group1.C3 = TableGroup1C3BIC[3,1]
+# Initialize log-likelihood matrix for each individual in Group 1
+sumGroup1C3BIC = matrix(ncol = 1, nrow = nrow(U_ij[number_of_people_group_1, ]))
 
-mu1.estimated.Group1.C3 = TableGroup1C3BIC[1,2:dim(TableGroup1C3BIC)[2]]
-mu1.standardized.Group1.C3 = mu1.estimated.Group1.C3/sum(TableGroup1C3BIC[1,2:dim(TableGroup1C3BIC)[2]])
-mu2.estimated.Group1.C3 = TableGroup1C3BIC[2,2:dim(TableGroup1C3BIC)[2]]
-mu2.standardized.Group1.C3 = mu2.estimated.Group1.C3/sum(TableGroup1C3BIC[2,2:dim(TableGroup1C3BIC)[2]])
-mu3.estimated.Group1.C3 = TableGroup1C3BIC[3,2:dim(TableGroup1C3BIC)[2]]
-mu3.standardized.Group1.C3 = mu3.estimated.Group1.C3/sum(TableGroup1C3BIC[3,2:dim(TableGroup1C3BIC)[2]])
+# Extract and normalize theta and mu estimates
+theta1.Group1.C3 = TableGroup1C3BIC[1, 1]
+theta2.Group1.C3 = TableGroup1C3BIC[2, 1]
+theta3.Group1.C3 = TableGroup1C3BIC[3, 1]
 
-for(i in 1:dim(U_ij[number_of_people_group_1,])[1]){
-  sumGroup1C3BIC[i,1] = 
-    log(
-      (theta1.Group1.C3 * sum((mu1.standardized.Group1.C3^U_ij[i,]) ))+
-        (theta2.Group1.C3 * sum((mu2.standardized.Group1.C3^U_ij[i,]) ))+
-        (theta3.Group1.C3 * sum((mu3.standardized.Group1.C3^U_ij[i,]) ))
-    )
+mu1.estimated.Group1.C3 = TableGroup1C3BIC[1, 2:ncol(TableGroup1C3BIC)]
+mu1.standardized.Group1.C3 = mu1.estimated.Group1.C3 / sum(mu1.estimated.Group1.C3)
+
+mu2.estimated.Group1.C3 = TableGroup1C3BIC[2, 2:ncol(TableGroup1C3BIC)]
+mu2.standardized.Group1.C3 = mu2.estimated.Group1.C3 / sum(mu2.estimated.Group1.C3)
+
+mu3.estimated.Group1.C3 = TableGroup1C3BIC[3, 2:ncol(TableGroup1C3BIC)]
+mu3.standardized.Group1.C3 = mu3.estimated.Group1.C3 / sum(mu3.estimated.Group1.C3)
+
+# Calculate log-likelihood for each individual under the 3-component model
+for (i in 1:nrow(U_ij[number_of_people_group_1, ])) {
+  sumGroup1C3BIC[i, 1] = log(
+    (theta1.Group1.C3 * sum(mu1.standardized.Group1.C3 ^ U_ij[i, ])) +
+      (theta2.Group1.C3 * sum(mu2.standardized.Group1.C3 ^ U_ij[i, ])) +
+      (theta3.Group1.C3 * sum(mu3.standardized.Group1.C3 ^ U_ij[i, ]))
+  )
 }
 sumGroup1C3BIC
-deltaC3Group1 = (2*kGroup1)
-BICGroup1C3 = (2*sum(sumGroup1C3BIC[,1]))-(deltaC3Group1*log(nGroup1))
+
+# Degrees of freedom: for C=3, we estimate 3*k parameters for mu and 2 for theta (since they sum to 1), so total = 2*k
+deltaC3Group1 = 2 * kGroup1
+
+# Compute BIC for Group 1 under the 3-component model
+BICGroup1C3 = (2 * sum(sumGroup1C3BIC[, 1])) - (deltaC3Group1 * log(nGroup1))
 BICGroup1C3
 
 # Group 2
@@ -617,11 +662,15 @@ Results_aloc_EM = AlocLikelihoodIndC3(U_Matrix = U_ij, Thetas = c(0.33,0.33,0.34
                                       mu1.estimate = mu1, mu2.estimate = mu2, mu3.estimate = mu3)
 Results_aloc_EM
 
-
 df_comparison = data.frame(
   True_Group = true_group,
   Modularity_Cluster = aloc_modularity,
   EM_Cluster = as.vector(Results_aloc_EM$Allocation))
 
-df_comparison
+# Direct comparison (assuming label correspondence is correct)
+modularity_accuracy <- mean(df_comparison$True_Group == df_comparison$Modularity_Cluster)
+em_accuracy <- mean(df_comparison$True_Group == df_comparison$EM_Cluster)
 
+# Print accuracies
+cat("Modularity Accuracy:", round(modularity_accuracy * 100, 2), "%\n")
+cat("EM Likelihood Accuracy:", round(em_accuracy * 100, 2), "%\n")
