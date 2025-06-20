@@ -248,7 +248,7 @@ number_of_people_group_3 = 67:100
 # Fixed measures by Group
 mu1 = c(runif(8, 0.7, 1), runif(12, 0.0, 0.1))
 mu2 = c(runif(8, 0.1, 0.2), runif(7, 0.8, 1), runif(5, 0.1, 0.2))
-mu3 = c(runif(15, 0.1, 0.3), runif(12, 0.9, 1))
+mu3 = c(runif(12, 0.1, 0.3), runif(8, 0.9, 1))
 
 # Group assignment (same number of individuals per Group, adjusted)
 for (i in 1:n_individuals) {
@@ -677,3 +677,7 @@ em_accuracy <- mean(df_comparison$True_Group == df_comparison$EM_Cluster)
 # Print accuracies
 cat("Modularity Accuracy:", round(modularity_accuracy * 100, 2), "%\n")
 cat("EM Likelihood Accuracy:", round(em_accuracy * 100, 2), "%\n")
+
+# Print number of clusters
+cat("Number of clusters (Modularity):", length(unique(df_comparison$Modularity_Cluster)), "\n")
+cat("Number of clusters (EM):", length(unique(df_comparison$EM_Cluster)), "\n")
