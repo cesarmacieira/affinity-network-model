@@ -234,9 +234,9 @@ SimulationsC3EM = function(C,nsim,Matriz.real,mu1.initial,mu2.initial,mu3.initia
 }
 
 ####============
-#### Modularity
+#### Parameters
 ####============
-# 1. Updated parameters
+# Updated parameters
 n_individuals = 100
 n_words = 20
 p_ij = matrix(0, nrow = n_individuals, ncol = n_words)
@@ -245,12 +245,12 @@ number_of_people_group_1 = 1:33
 number_of_people_group_2 = 34:66
 number_of_people_group_3 = 67:100
 
-# 2. Fixed measures by Group
+# Fixed measures by Group
 mu1 = c(runif(8, 0.7, 1), runif(12, 0.0, 0.1))
 mu2 = c(runif(8, 0.1, 0.2), runif(7, 0.8, 1), runif(5, 0.1, 0.2))
-mu3 = c(runif(15, 0.1, 0.3), runif(5, 0.9, 1))
+mu3 = c(runif(15, 0.1, 0.3), runif(12, 0.9, 1))
 
-# 3. Group assignment (same number of individuals per Group, adjusted)
+# Group assignment (same number of individuals per Group, adjusted)
 for (i in 1:n_individuals) {
   if (i <= number_of_people_group_1[length(number_of_people_group_1)]) {
     p_ij[i, ] = mu1
@@ -264,22 +264,25 @@ for (i in 1:n_individuals) {
   }
 }
 
-# 4. Generate U_ij
+# Generate U_ij
 U_ij = matrix(runif(n_individuals * n_words) < p_ij, nrow = n_individuals, ncol = n_words) * 1
 
-# 5. Create bipartite network and design
+####============
+#### Modularity
+####============
+# Create bipartite network and design
 g_bip = graph.incidence(U_ij)
 proj = bipartite_projection(g_bip)$proj1
 V(proj)$Group = cluster_real
 
-# 6. Modularity
+# Modularity
 mod = modularity(proj, membership = cluster_real)
 print(mod)
 
-# 7. Detect Communities with Louvain method (can be changed to another)
+# Detect Communities with Louvain method (can be changed to another)
 Communities_mod = cluster_louvain(proj)
 
-# 8. Get Allocation vector (Community detected for each person)
+# Get Allocation vector (Community detected for each person)
 aloc_modularity = Communities_mod$membership
 
 ####=====
