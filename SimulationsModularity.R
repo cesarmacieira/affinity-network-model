@@ -3,6 +3,7 @@
 #### César Macieira
 ####========================
 rm(list=ls(all=T))
+setwd("C:/Users/cesar_macieira/Desktop/Usiminas/Doutorado/affinity-network-model")
 set.seed(13)
 
 ####===========
@@ -231,6 +232,11 @@ SimulationsC3EM = function(C,nsim,Matriz.real,mu1.initial,mu2.initial,mu3.initia
   parameters.est$mu = mu.sim
   parameters.est$mu.mean = mu.mean
   return(parameters.est)
+}
+DescribeCat<- function(x){
+  tabela <- cbind(table(x), prop.table(table(x)))
+  colnames(tabela) <- c("Absolute Frequency (N)", "Relative Frequency (%)")
+  return(tabela)
 }
 
 ####============
@@ -681,3 +687,120 @@ cat("EM Likelihood Accuracy:", round(em_accuracy * 100, 2), "%\n")
 # Print number of clusters
 cat("Number of clusters (Modularity):", length(unique(df_comparison$Modularity_Cluster)), "\n")
 cat("Number of clusters (EM):", length(unique(df_comparison$EM_Cluster)), "\n")
+
+####==================
+#### Covid modularity
+####==================
+dadosGeral = read.xlsx("C:/Users/cesar_macieira/Desktop/Usiminas/Doutorado/affinity-network-model/Dados Formulário - Geral - 13-02.xlsx",
+                       sheet=1, detectDates=TRUE)
+dadosUFMG = read.xlsx("C:/Users/cesar_macieira/Desktop/Usiminas/Doutorado/affinity-network-model/Dados Formulário - UFMG - 13-02.xlsx",
+                      sheet=1, detectDates=TRUE)
+dadosTotal = read.xlsx("C:/Users/cesar_macieira/Desktop/Usiminas/Doutorado/affinity-network-model/Dados Formulário - Total - 13-02.xlsx",
+                       sheet=1, detectDates=TRUE)
+descritivaGeral = na.omit(c(dadosGeral$Palavra.1,dadosGeral$Palavra.2,dadosGeral$Palavra.3,dadosGeral$Palavra.4,
+                            dadosGeral$Palavra.5,dadosGeral$Palavra.6,dadosGeral$Palavra.7,dadosGeral$Palavra.8,
+                            dadosGeral$Palavra.9,dadosGeral$Palavra.10,dadosGeral$Palavra.11,dadosGeral$Palavra.12,
+                            dadosGeral$Palavra.13,dadosGeral$Palavra.14,dadosGeral$Palavra.15,dadosGeral$Palavra.16,
+                            dadosGeral$Palavra.17,dadosGeral$Palavra.18,dadosGeral$Palavra.19)) %>% 
+  as.data.frame() %>% map(DescribeCat)
+descritivaUFMG = na.omit(c(dadosUFMG$Palavra.1,dadosUFMG$Palavra.2,dadosUFMG$Palavra.3,dadosUFMG$Palavra.4,
+                           dadosUFMG$Palavra.5,dadosUFMG$Palavra.6,dadosUFMG$Palavra.7,dadosUFMG$Palavra.8,
+                           dadosUFMG$Palavra.9,dadosUFMG$Palavra.10,dadosUFMG$Palavra.11,dadosUFMG$Palavra.12,
+                           dadosUFMG$Palavra.13,dadosUFMG$Palavra.14,dadosUFMG$Palavra.15,dadosUFMG$Palavra.16,
+                           dadosUFMG$Palavra.17,dadosUFMG$Palavra.18)) %>% 
+  as.data.frame() %>% map(DescribeCat)
+descritivaTotal = na.omit(c(dadosTotal$Palavra.1,dadosTotal$Palavra.2,dadosTotal$Palavra.3,dadosTotal$Palavra.4,
+                            dadosTotal$Palavra.5,dadosTotal$Palavra.6,dadosTotal$Palavra.7,dadosTotal$Palavra.8,
+                            dadosTotal$Palavra.9,dadosTotal$Palavra.10,dadosTotal$Palavra.11,dadosTotal$Palavra.12,
+                            dadosTotal$Palavra.13,dadosTotal$Palavra.14,dadosTotal$Palavra.15,dadosTotal$Palavra.16,
+                            dadosTotal$Palavra.17,dadosTotal$Palavra.18,dadosTotal$Palavra.19)) %>% 
+  as.data.frame() %>% map(DescribeCat)
+
+dicionarioGeral = descritivaGeral %>% as.data.frame() %>% row.names()
+evocgeral = dadosGeral %>% select(-c(ID,Profissão)) %>% as.data.frame()
+MatrizEscolhasGeral = matrix(nrow = dim(evocgeral)[1], ncol = length(dicionarioGeral))
+for(i in 1:dim(evocgeral)[1]){
+  for(j in 1:length(dicionarioGeral)){
+    if(length(is.na(str_which(evocgeral[i,], dicionarioGeral[j]))) == 0){
+      MatrizEscolhasGeral[i,j] = 0
+    }else if(is.na(str_which(evocgeral[i,], dicionarioGeral[j])) == FALSE){
+      MatrizEscolhasGeral[i,j] = str_which(evocgeral[i,], dicionarioGeral[j])
+    }
+  }
+}
+colnames(MatrizEscolhasGeral) = dicionarioGeral
+MatrizEscolhasGeralCardinal = data.frame("Profissão" = dadosGeral$Profissão,MatrizEscolhasGeral)
+MatrizEscolhasGeralBinaria = MatrizEscolhasGeralCardinal %>% select(-Profissão)
+MatrizEscolhasGeralBinaria[MatrizEscolhasGeralBinaria > 1] = 1
+
+dicionarioUFMG = descritivaUFMG %>% as.data.frame() %>% row.names()
+evocUFMG = dadosUFMG %>% select(-c(ID,Profissão)) %>% as.data.frame()
+MatrizEscolhasUFMG = matrix(nrow = dim(evocUFMG)[1], ncol = length(dicionarioUFMG))
+for(i in 1:dim(evocUFMG)[1]){
+  for(j in 1:length(dicionarioUFMG)){
+    if(length(is.na(str_which(evocUFMG[i,], dicionarioUFMG[j]))) == 0){
+      MatrizEscolhasUFMG[i,j] = 0
+    }else if(is.na(str_which(evocUFMG[i,], dicionarioUFMG[j])) == FALSE){
+      MatrizEscolhasUFMG[i,j] = str_which(evocUFMG[i,], dicionarioUFMG[j])
+    }
+  }
+}
+colnames(MatrizEscolhasUFMG) = dicionarioUFMG
+MatrizEscolhasUFMGCardinal = data.frame("Profissão" = dadosUFMG$Profissão,MatrizEscolhasUFMG)
+MatrizEscolhasUFMGBinaria = MatrizEscolhasUFMGCardinal %>% select(-Profissão)
+MatrizEscolhasUFMGBinaria[MatrizEscolhasUFMGBinaria > 1] = 1
+
+dicionarioTotal = descritivaTotal %>% as.data.frame() %>% row.names()
+evocTotal = dadosTotal %>% select(-c(ID,Profissão)) %>% as.data.frame()
+MatrizEscolhasTotal = matrix(nrow = dim(evocTotal)[1], ncol = length(dicionarioTotal))
+for(i in 1:dim(evocTotal)[1]){
+  for(j in 1:length(dicionarioTotal)){
+    if(length(is.na(str_which(evocTotal[i,], dicionarioTotal[j]))) == 0){
+      MatrizEscolhasTotal[i,j] = 0
+    }else if(is.na(str_which(evocTotal[i,], dicionarioTotal[j])) == FALSE){
+      MatrizEscolhasTotal[i,j] = str_which(evocTotal[i,], dicionarioTotal[j])
+    }
+  }
+}
+colnames(MatrizEscolhasTotal) = dicionarioTotal
+MatrizEscolhasTotalCardinal = data.frame("Profissão" = dadosTotal$Profissão,MatrizEscolhasTotal)
+MatrizEscolhasTotalBinaria = MatrizEscolhasTotalCardinal %>% select(-Profissão)
+MatrizEscolhasTotalBinaria[MatrizEscolhasTotalBinaria > 1] = 1
+
+# Function to compute modularity from a binary choice matrix
+compute_modularity <- function(binary_matrix) {
+  # Ensure the matrix is numeric
+  binary_matrix <- as.matrix(binary_matrix)
+  
+  # Create bipartite graph
+  g_bip <- graph.incidence(binary_matrix)
+  
+  # Project to one-mode network (projection on individuals)
+  projection <- bipartite_projection(g_bip)$proj1
+  
+  # Detect communities (Louvain method)
+  communities <- cluster_louvain(projection)
+  
+  # Get allocation vector (community of each individual)
+  allocation <- communities$membership
+  
+  # Compute modularity
+  mod <- modularity(projection, membership = allocation)
+  
+  return(list(modularity = mod, allocation = allocation, communities = communities))
+}
+
+# Apply the function to the three matrices
+result_geral <- compute_modularity(MatrizEscolhasGeralBinaria)
+result_ufmg  <- compute_modularity(MatrizEscolhasUFMGBinaria)
+result_total <- compute_modularity(MatrizEscolhasTotalBinaria)
+
+# Display modularity values
+cat("Modularity - Geral: ", result_geral$modularity, "\n")
+cat("Modularity - UFMG:  ", result_ufmg$modularity, "\n")
+cat("Modularity - Total: ", result_total$modularity, "\n")
+
+# Print number of clusters
+cat("Number of clusters (Geral):", length(unique(result_geral$allocation)), "\n")
+cat("Number of clusters (UFMG):", length(unique(result_ufmg$allocation)), "\n")
+cat("Number of clusters (Total):", length(unique(result_total$allocation)), "\n")
